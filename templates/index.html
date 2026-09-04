@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}SuiteEncript - Gestor de contraseñas y bóveda cifrada{% endblock %}
+{% block extra_head %}
+<!-- Fraunces: solo para la landing (títulos editoriales), no para el resto de
+     la app -- por eso va acá y no en el <link> de fuentes de base.html, así
+     el resto de páginas no paga el costo de una fuente que no usan. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/landing.css') }}" rel="stylesheet">
+{% endblock %}
+{% block navbar %}
+<div class="se-page-nav se-cinematic-nav" id="cinematicNav">
+    <nav class="se-navbar">
+        <div class="se-cinematic-brand-group">
+            <a href="/" class="se-brand se-cinematic-brand"><i class="bi bi-shield-lock-fill"></i> SuiteEncript</a>
+            <div class="se-status">Conexión cifrada</div>
+        </div>
+        <div class="se-nav-actions">
+            <button type="button" class="se-btn se-btn-outline se-btn-sm" data-se-install-app hidden>
+                <i class="bi bi-download"></i> Instalar app
+            </button>
+            <a href="{{ url_for('auth.login') }}" class="se-btn se-btn-outline se-btn-sm">Iniciar sesión</a>
+        </div>
+    </nav>
+</div>
+{% endblock %}
+{% block content %}
+<div class="se-scroll-progress" id="scrollProgress"></div>
+
+<section class="se-hero-cinematic">
+    <canvas class="se-hero-canvas" id="heroNetwork" aria-hidden="true"></canvas>
+    <div class="se-hero-canvas-overlay"></div>
+    <div class="se-hero-cinematic-inner">
+        <h1 class="se-hero-title">Tus contraseñas y archivos, cifrados de verdad.</h1>
+        <p class="se-hero-subtitle">Gestor de credenciales y bóveda de archivos con cifrado AES-256-GCM, autenticación en dos pasos y control de acceso — sin depender de un tercero para confiar en tu propia seguridad.</p>
+        <a href="{{ url_for('auth.register') }}" class="se-btn se-btn-primary">Crear cuenta gratis <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="se-scroll-cue"><span>Desplázate</span><span class="se-scroll-line"></span></div>
+</section>
+
+<section class="se-statement-scene">
+    <p class="se-reveal">Reutilizar la misma contraseña en <em>15 sitios distintos</em> no es gestión de contraseñas. Es una apuesta que tarde o temprano se pierde.</p>
+</section>
+
+<section class="se-feature-scene">
+    <div class="se-feature-row">
+        <div class="se-feature-text">
+            <h2 class="se-reveal">Todo tu panorama de seguridad, en un lugar</h2>
+            <p class="se-feature-copy se-reveal">Bóvedas, herramientas criptográficas y estado de la cuenta en un único panel — sin saltar entre pantallas para saber qué falta asegurar.</p>
+        </div>
+        <div class="se-media-frame se-reveal">
+            <span class="se-frame-tag">5 herramientas · 1 panel</span>
+            <img src="{{ url_for('static', filename='screenshots/dashboard-frame.png') }}" alt="Dashboard de SuiteEncript" width="1280" height="690">
+        </div>
+    </div>
+</section>
+
+<section class="se-feature-scene">
+    <div class="se-feature-row">
+        <div class="se-feature-text">
+            <h2 class="se-reveal">Archivos cifrados antes de tocar el disco</h2>
+            <p class="se-feature-copy se-reveal">Cada archivo se cifra en el navegador con AES-256-GCM antes de que un solo byte salga hacia el servidor.</p>
+        </div>
+        <div class="se-media-frame se-reveal">
+            <span class="se-frame-tag">AES-256-GCM</span>
+            <img src="{{ url_for('static', filename='screenshots/vault-frame.png') }}" alt="Bóveda de archivos cifrados" width="1280" height="458">
+        </div>
+    </div>
+</section>
+
+<section class="se-feature-scene">
+    <div class="se-feature-row">
+        <div class="se-feature-text">
+            <h2 class="se-reveal">Contraseñas fuertes, verificadas contra filtraciones reales</h2>
+            <p class="se-feature-copy se-reveal">Generador integrado y verificación automática contra HaveIBeenPwned, sin salir de la app ni exponer la contraseña en texto plano.</p>
+        </div>
+        <div class="se-media-frame se-reveal">
+            <span class="se-frame-tag">Verificación HIBP</span>
+            <img src="{{ url_for('static', filename='screenshots/passwords-frame.png') }}" alt="Gestor de contraseñas" width="1280" height="458">
+        </div>
+    </div>
+</section>
+
+<section class="se-feature-scene">
+    <div class="se-feature-row">
+        <div class="se-feature-text">
+            <h2 class="se-reveal">Un segundo factor, por si el primero falla</h2>
+            <p class="se-feature-copy se-reveal">TOTP estándar (RFC 6238) — funciona con Google Authenticator, Authy o cualquier app compatible que ya tengas instalada.</p>
+        </div>
+        <div class="se-media-frame se-reveal">
+            <span class="se-frame-tag">TOTP · RFC 6238</span>
+            <img src="{{ url_for('static', filename='screenshots/twofa_setup-frame.png') }}" alt="Configuración de autenticación en dos pasos" width="1280" height="610">
+        </div>
+    </div>
+</section>
+
+<section class="se-news-scene">
+    <h2 class="se-reveal">Últimas noticias</h2>
+    {% if news %}
+        <div class="se-news-marquee se-reveal">
+            <button type="button" class="se-news-nav se-news-nav-prev" data-se-news-prev aria-label="Noticia anterior">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button type="button" class="se-news-nav se-news-nav-next" data-se-news-next aria-label="Siguiente noticia">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <div class="se-news-viewport">
+                <div class="se-news-track">
+                    {% for group in (news, news) %}
+                    <div class="se-news-track-set"{% if loop.index0 %} aria-hidden="true"{% endif %}>
+                        {% for item in group %}
+                        <a class="se-news-card" href="{{ item.link }}" target="_blank" rel="noopener noreferrer"{% if loop.index0 %} tabindex="-1"{% endif %}>
+                            {% if item.image %}
+                                <img class="se-news-card-img" src="{{ item.image }}" alt="">
+                            {% else %}
+                                <div class="se-news-card-img se-news-card-img-empty"><i class="bi bi-shield-lock"></i></div>
+                            {% endif %}
+                            <div class="se-news-card-body">
+                                <div class="se-news-date">{{ item.published }} · {{ item.source }}</div>
+                                <div class="se-news-title">{{ item.title }}</div>
+                                <div class="se-news-desc">{{ item.summary }}</div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="se-card se-reveal">
+            <div class="se-news-item">
+                <div class="se-news-desc">No se pudieron cargar las noticias en este momento.</div>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+<section class="se-final-cta-scene se-reveal">
+    <h2>Empieza a cifrar de verdad.</h2>
+    <p>Gratis, de código abierto, sin límites artificiales.</p>
+    <a href="{{ url_for('auth.register') }}" class="se-btn se-btn-primary">Crear cuenta gratis <i class="bi bi-arrow-right"></i></a>
+</section>
+
+<footer class="se-landing-footer">SuiteEncript</footer>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

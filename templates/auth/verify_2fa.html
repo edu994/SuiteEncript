@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Verificación en dos pasos - SuiteEncript{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<div class="se-page-narrow">
+    <div class="se-auth-header">
+        <a href="/" class="se-brand">SuiteEncript</a>
+        <div class="se-status">Conexión cifrada</div>
+    </div>
+
+    <div class="se-card">
+        <h2 class="se-card-title se-card-title-center">Verificación en dos pasos</h2>
+
+        {% include "_flashes.html" %}
+
+        <p class="se-text-muted se-text-sm">Ingresá el código de 6 dígitos de tu app autenticadora, o uno de tus códigos de respaldo si perdiste el acceso.</p>
+
+        <form action="{{ url_for('auth.verify_2fa') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="se-form-group">
+                <label for="code">Código</label>
+                <input type="text" id="code" name="code" class="se-input" required autofocus placeholder="123456 o XXXX-XXXX">
+            </div>
+            <button type="submit" class="se-btn se-btn-primary se-btn-block">Verificar</button>
+        </form>
+
+        <div class="se-form-footer">
+            <a href="{{ url_for('auth.login') }}">Cancelar e iniciar sesión de nuevo</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

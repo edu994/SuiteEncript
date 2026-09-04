@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Página no encontrada - SuiteEncript{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<div class="se-page-narrow">
+    <div class="se-card se-text-center">
+        <i class="bi bi-signpost-2 se-icon-lg se-c-danger"></i>
+        <h4 class="se-font-display se-mt-lg se-mb-0">404 — Página no encontrada</h4>
+        <p class="se-text-muted se-mb-lg">La ruta que buscas no existe.</p>
+        <a href="{{ url_for('dashboard') }}" class="se-btn se-btn-outline se-btn-sm">Volver al inicio</a>
+    </div>
+</div>
+{% endblock %}

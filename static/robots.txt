@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password/
+Disallow: /2fa/
+Disallow: /account
+Disallow: /dashboard
+Disallow: /passwords
+Disallow: /vault/
+Disallow: /tools/

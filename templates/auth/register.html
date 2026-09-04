@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}SuiteEncript - Crear cuenta{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<main id="main-content" class="se-page-narrow">
+    <div class="se-auth-header">
+        <a href="/" class="se-brand">SuiteEncript</a>
+        <div class="se-status">Conexión cifrada</div>
+    </div>
+
+    <div class="se-card">
+        <h2 class="se-card-title se-card-title-center">Crear tu cuenta</h2>
+
+        {% include "_flashes.html" %}
+
+        <form action="{{ url_for('auth.register') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="se-form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" class="se-input" autocomplete="username" required placeholder="ej. maria92">
+            </div>
+            <div class="se-form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="se-input" autocomplete="email" required placeholder="ej. maria92@correo.com">
+                <div class="se-text-muted se-text-xs se-mt-sm">Solo se usa para recuperar tu cuenta si olvidás la contraseña.</div>
+            </div>
+            <div class="se-form-group">
+                <label for="password">Contraseña maestra</label>
+                <div class="se-password-group">
+                    <input type="password" id="password" name="password" class="se-input" autocomplete="new-password" required placeholder="••••••••••••">
+                    <button type="button" class="se-peek-password" data-se-peek-password="password" aria-label="Mantén pulsado para ver la contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <div class="se-text-muted se-text-xs se-mt-sm">Mínimo 10 caracteres, con letras y números, y que no sea predecible.</div>
+            </div>
+            <button type="submit" class="se-btn se-btn-secondary se-btn-block">Crear cuenta</button>
+        </form>
+
+        <div class="se-form-footer">
+            ¿Ya tienes una cuenta?<br>
+            <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

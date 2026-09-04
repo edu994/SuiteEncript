@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SuiteEncript{% endblock %}</title>
+    <!-- Fondo oscuro inline, antes de cualquier hoja de estilos externa: sin
+         esto, mientras cargan las fuentes de Google/bootstrap-icons/style.css
+         (todas hojas de estilo bloqueantes en el <head>), el navegador pinta
+         el fondo blanco por defecto -- un "flash" muy visible contra un hero
+         a pantalla completa con video oscuro encima. Mismo color que
+         --se-bg en style.css y que el theme-color de abajo, para que no haya
+         ningún salto de color cuando el CSS real toma el control. -->
+    <style>html, body { background-color: #0a0e1a; }</style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#0a0e1a">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <a href="#main-content" class="se-skip-link">Saltar al contenido</a>
+    {% block navbar %}
+    <div class="se-page-nav">
+        <nav class="se-navbar">
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="se-brand">SuiteEncript</a>
+                {% if session.username %}
+                    <div class="se-status">{{ session.username }} · Conexión cifrada</div>
+                {% else %}
+                    <div class="se-status">Conexión cifrada</div>
+                {% endif %}
+            </div>
+            <div class="se-nav-actions">
+                <button type="button" class="se-btn se-btn-outline se-btn-sm" data-se-install-app hidden>
+                    <i class="bi bi-download"></i> Instalar app
+                </button>
+                {% if session.user_id %}
+                    <div class="se-account-menu">
+                        <button type="button" class="se-account-trigger" data-se-dropdown-toggle
+                                aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu">
+                            <span class="se-account-avatar">{{ session.username[0]|upper }}</span>
+                            {{ session.username }}
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <div class="se-dropdown-menu" id="accountMenu" data-se-dropdown-menu role="menu" hidden>
+                            <a href="{{ url_for('dashboard') }}" role="menuitem"><i class="bi bi-grid"></i> Panel</a>
+                            <a href="{{ url_for('auth.account') }}" role="menuitem"><i class="bi bi-person-gear"></i> Mi cuenta</a>
+                            <a href="{{ url_for('tools.audit_log') }}" role="menuitem"><i class="bi bi-clock-history"></i> Auditoría</a>
+                            <hr>
+                            <a href="{{ url_for('auth.logout') }}" role="menuitem" class="se-c-danger"><i class="bi bi-box-arrow-right"></i> Salir</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="se-btn se-btn-outline se-btn-sm">Iniciar sesión</a>
+                {% endif %}
+            </div>
+        </nav>
+    </div>
+    {% endblock %}
+
+    {% block body %}
+    <main id="main-content" class="se-page">
+        {% include "_flashes.html" %}
+        {% block content %}{% endblock %}
+    </main>
+    {% endblock %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

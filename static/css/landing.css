@@ -1,0 +1,593 @@
+/* Landing como narrativa de scroll cinematográfica, con capturas reales
+   de la app en vez de mockups. Nada de glow/neón ni efectos tipo "hacker
+   de película" (matrix rain, esferas wireframe, scanlines de CRT) — el
+   "wow" viene del movimiento (scroll-reveal, parallax sutil), no de
+   brillos ni colores saturados. Sin librería de animación: todo con
+   IntersectionObserver + CSS, mismo criterio que ya sacó Three.js del
+   proyecto (no sumar otro origen externo al CSP).
+
+   Layout de dos columnas que alterna de lado por sección (no todo
+   centrado), capturas recortadas a su contenido real (no flotando en
+   medio de espacio vacío) con una etiqueta de dato concreto en la
+   esquina, y una fuente serif editorial (Fraunces, solo acá) para
+   títulos — el resto de la app sigue en Inter, a propósito: la landing
+   es la única pieza "editorial", el producto en sí sigue siendo una
+   herramienta. */
+
+:root { --se-font-editorial: 'Fraunces', Georgia, 'Times New Roman', serif; }
+
+body { overflow-x: hidden; position: relative; }
+/* .se-page (style.css) trae max-width:1100px + margin:0 auto, pensado para
+   el contenido angosto de las páginas internas (formularios, tablas) — acá
+   hay que anularlo además del padding, si no toda la landing (hero,
+   escenas, carrusel de noticias) queda encogida en una columna central con
+   franjas negras enormes a los costados, en vez de usar el ancho real de
+   la pantalla. Cada escena ya controla su propio ancho de lectura por su
+   cuenta (.se-hero-cinematic-inner, .se-feature-scene, .se-statement-scene
+   tienen su propio max-width), así que sacar el límite acá no las
+   desborda. */
+.se-page { position: relative; z-index: 1; padding: 0 !important; max-width: none !important; margin: 0 !important; }
+
+/* --- navegación fija: siempre visible durante el scroll largo, para que
+   quien ya conoce el sitio pueda ir directo a "Iniciar sesión" sin tener
+   que bajar por toda la narrativa --- */
+.se-cinematic-nav {
+    /* .se-page-nav (style.css) trae max-width:1100px + margin:0 auto pensado
+       para el nav centrado y angosto de las páginas internas — acá hace
+       falta anularlo, si no el fondo/blur del nav solo cubre una franja
+       central y el contenido scrolleado se ve "sangrando" por los costados
+       transparentes en la parte superior de la pantalla. */
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    max-width: none; margin: 0;
+    /* Antes 16px arriba: la marca quedaba pegada al borde superior, poco
+       perceptible ("el nombre de la web está demasiado arriba"). Más aire
+       arriba y una píldora más alta (ver .se-cinematic-nav .se-navbar más
+       abajo) le dan más presencia sin dejar de estar fija. */
+    padding: 26px 16px 0;
+    transition: filter 0.3s var(--se-ease);
+    /* El fondo/blur va también acá, no solo en .se-navbar de abajo: el
+       padding de este contenedor (el "aire" alrededor de la píldora) no
+       tiene fondo propio, así que sin esto queda una franja transparente
+       de 16px arriba/a los costados por donde se sigue viendo el texto del
+       hero al hacer scroll — justo el mismo tipo de bug que ya se había
+       corregido una vez subiendo la opacidad de la píldora, pero ahí solo
+       se cubría la píldora, no el "aire" alrededor. */
+    /* Bajado de 0.97: se leía como una barra casi negra que "corta" la
+       animación de fondo, en vez de sentirse consistente con el resto de
+       la página (canvas visible en movimiento). El blur de 14px ya hacía
+       la mayor parte del trabajo de evitar que el texto scrolleado detrás
+       se lea con nitidez (ver el bug de nav-bleed corregido antes) -- 0.78
+       deja pasar bastante más brillo/color de la red de nodos sin
+       sacrificar esa legibilidad, verificado tomando captura con texto
+       scrolleado detrás del nav. */
+    background: rgba(10, 13, 22, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+.se-cinematic-nav .se-navbar {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+.se-cinematic-nav.se-nav-scrolled .se-navbar { box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+
+/* .se-navbar (style.css) no trae su propio max-width -- en páginas internas
+   no hace falta porque vive dentro de .se-page-nav (max-width:1100px). Acá
+   .se-cinematic-nav ya anula ese límite a propósito (para que el fondo/blur
+   cubra todo el ancho durante el scroll), pero eso dejaba también el
+   contenido de la píldora (marca + botón) estirado de punta a punta en una
+   pantalla ancha -- "SuiteEncript" pegado al borde izquierdo, "Iniciar
+   sesión" al derecho, con un vacío enorme en el medio. Se limita el
+   contenido, no el fondo. */
+.se-cinematic-nav .se-navbar {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+/* Más presencia en este contexto (hero a pantalla completa) que en el
+   navbar chico de las páginas internas -- "el nombre de SuiteEncript
+   prácticamente no se ve" fue feedback directo: un 1.2rem gradient-clip
+   se perdía contra un hero enorme. Subido bastante más el tamaño y sumado
+   un ícono para que la marca tenga peso real como primer elemento de la
+   página, no solo texto chico en una esquina. */
+.se-cinematic-nav .se-navbar { padding: 18px 26px; }
+.se-cinematic-brand-group { display: flex; align-items: center; gap: 14px; }
+.se-cinematic-nav .se-brand {
+    font-size: 1.85rem;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.se-cinematic-nav .se-brand i { -webkit-text-fill-color: var(--se-accent-strong); color: var(--se-accent-strong); }
+.se-cinematic-nav .se-nav-actions .se-btn {
+    padding: 10px 22px;
+    font-size: 0.88rem;
+}
+
+/* --- escena 1: hero con video --- */
+.se-hero-cinematic {
+    position: relative;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    text-align: center;
+    padding: 0 16px;
+}
+/* Fija a la ventana (no al hero): así la red de nodos queda de fondo
+   durante todo el recorrido del scroll, no solo en la primera pantalla —
+   si hay scroll, la animación se mantiene de principio a fin en vez de
+   desaparecer al pasar la primera sección. z-index:0 la deja detrás de
+   .se-page (z-index:1) y de cualquier tarjeta/sección, que tienen su
+   propio fondo sólido donde corresponde. */
+.se-hero-canvas {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    z-index: 0;
+}
+.se-hero-canvas-overlay {
+    position: absolute; inset: 0;
+    /* Bug real, confirmado midiendo brillo de píxeles: el degradé llegaba
+       a var(--se-bg) SÓLIDO (opacidad 100%) justo en el
+       borde inferior del hero -- eso tapaba la red de nodos por completo
+       en una franja de ~90px, y como .se-statement-scene (justo después)
+       no tiene overlay propio, el canvas "reaparecía" de golpe apenas
+       cruzado ese borde. El contraste entre "nada visible" y "canvas a
+       toda vista" en dos franjas contiguas es la costura que se notaba
+       al pasar de una escena a otra. Tope bajado a 0.75: el hero se sigue
+       oscureciendo lo suficiente para que el texto se lea bien, pero
+       nunca llega a tapar el canvas del todo, así la transición hacia el
+       resto de la página (sin overlay) es gradual, no un corte. */
+    background: linear-gradient(180deg, rgba(10,14,26,0.05) 0%, rgba(10,14,26,0.32) 65%, rgba(10,14,26,0.75) 100%);
+}
+.se-hero-cinematic-inner { position: relative; z-index: 2; max-width: 720px; }
+.se-hero-cinematic .se-hero-title {
+    font-family: var(--se-font-editorial); font-weight: 600; font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+    color: var(--se-text-bright); line-height: 1.1; margin-bottom: 16px;
+    font-size: clamp(2.1rem, 5.5vw, 3.6rem);
+    animation: se-fade-in-up 0.7s var(--se-ease) both;
+}
+.se-hero-cinematic .se-hero-subtitle {
+    font-size: 1rem; color: var(--se-text-muted); max-width: 560px; margin: 0 auto 30px; line-height: 1.7;
+    animation: se-fade-in-up 0.7s 0.1s var(--se-ease) both;
+}
+.se-hero-cinematic .se-btn { animation: se-fade-in-up 0.7s 0.2s var(--se-ease) both; }
+
+.se-scroll-cue {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    color: var(--se-text-muted); font-family: var(--se-font-mono); font-size: 0.72rem;
+}
+.se-scroll-cue .se-scroll-line { width: 1px; height: 36px; background: linear-gradient(var(--se-accent), transparent); animation: se-scroll-grow 2s ease-in-out infinite; }
+@keyframes se-scroll-grow {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    51% { transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* --- barra de progreso de scroll --- */
+.se-scroll-progress {
+    position: fixed; top: 0; left: 0; height: 2px; background: var(--se-accent);
+    z-index: 101; width: 0%;
+}
+
+/* --- escena de frase de impacto --- */
+.se-statement-scene {
+    min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 60px 24px;
+    /* Fondo sólido real: el canvas de la red de nodos es fixed a toda la
+       ventana (ver .se-hero-canvas) y sigue dibujando durante todo el
+       scroll -- sin esto, se filtraba detrás del texto de cada escena.
+       Con puntos sueltos y tenues pasaba casi desapercibido, pero se hace
+       obvio en cuanto el candado (una forma reconocible) aparece detrás
+       de un párrafo. */
+    background: var(--se-bg);
+}
+.se-statement-scene p {
+    font-family: var(--se-font-editorial); font-size: clamp(24px, 3.6vw, 40px); font-weight: 500;
+    text-align: center; max-width: 880px;
+    color: var(--se-text-muted); letter-spacing: -0.01em; line-height: 1.35;
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.9s var(--se-ease), transform 0.9s var(--se-ease);
+}
+.se-statement-scene p.se-in-view { opacity: 1; transform: translateY(0); }
+.se-statement-scene em { color: var(--se-text-bright); font-style: italic; }
+
+/* --- escenas de feature con captura real ---
+   Cada escena alterna de lado (texto/captura) en vez de apilar todo
+   centrado -- junto con el numeral editorial en vez de blob+etiqueta, es
+   lo que más rompe con el look de "grid de features genérico". */
+.se-feature-scene {
+    min-height: 90vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 70px 24px;
+    /* Ver el comentario de .se-statement-scene: fondo sólido real para
+       tapar el canvas de la red de nodos, que es fixed a toda la ventana. */
+    background: var(--se-bg);
+}
+.se-feature-row {
+    display: flex; align-items: center; gap: clamp(32px, 6vw, 80px);
+    max-width: 1120px; width: 100%;
+}
+.se-feature-scene:nth-of-type(even) .se-feature-row { flex-direction: row-reverse; }
+
+.se-feature-text { flex: 0 1 400px; min-width: 0; }
+.se-feature-scene h2 {
+    font-family: var(--se-font-editorial); font-weight: 600; font-optical-sizing: auto;
+    font-size: clamp(24px, 2.8vw, 32px); color: var(--se-text-bright);
+    letter-spacing: -0.01em; line-height: 1.25; margin: 0 0 14px;
+    opacity: 0; transform: translateY(18px);
+    transition: opacity 0.7s 0.08s var(--se-ease), transform 0.7s 0.08s var(--se-ease);
+}
+.se-feature-scene h2.se-in-view { opacity: 1; transform: translateY(0); }
+.se-feature-copy {
+    font-size: 0.96rem; color: var(--se-text-muted); line-height: 1.65; max-width: 42ch;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.7s 0.16s var(--se-ease), transform 0.7s 0.16s var(--se-ease);
+}
+.se-feature-copy.se-in-view { opacity: 1; transform: translateY(0); }
+
+.se-media-frame {
+    position: relative; flex: 1 1 560px; min-width: 0;
+    /* Columna, no overlay: el tag vive como barra propia arriba de la
+       imagen (ver .se-frame-tag más abajo) -- como position:absolute sobre
+       la esquina de la imagen tapaba parte del contenido real de la
+       captura, así nunca se superponen. */
+    display: flex; flex-direction: column;
+    border-radius: var(--se-radius); overflow: hidden; border: 1px solid rgba(148,163,184,0.4);
+    box-shadow: 0 30px 70px -28px rgba(0,0,0,0.65);
+    opacity: 0; transform: translateX(48px);
+    transition: opacity 0.8s 0.1s var(--se-ease), transform 0.8s 0.1s var(--se-ease);
+}
+.se-feature-scene:nth-of-type(even) .se-media-frame { transform: translateX(-48px); }
+.se-media-frame.se-in-view { opacity: 1; transform: translateX(0); }
+.se-media-frame img { display: block; width: 100%; height: auto; }
+.se-frame-tag {
+    order: -1;
+    font-family: var(--se-font-mono); font-size: 0.68rem; letter-spacing: 0.02em;
+    color: var(--se-text-bright); background: rgba(6, 9, 17, 0.82);
+    border-bottom: 1px solid rgba(148,163,184,0.35); padding: 8px 14px;
+}
+
+/* --- noticias: cinta horizontal continua de tarjetas grandes con imagen
+   real del artículo (The Hacker News / Krebs la traen en su RSS,
+   BleepingComputer no -- ver app/utils/news_feed.py, se resuelve con un
+   estado vacío por tarjeta, nunca rompe el layout). El contenido se
+   duplica una vez en la plantilla (.se-news-track-set repetido) para que
+   la animación de -50% cierre en bucle sin costura -- ver
+   @keyframes se-marquee más abajo. */
+/* Ver el comentario de .se-statement-scene: fondo sólido real para tapar
+   el canvas de la red de nodos, que es fixed a toda la ventana. */
+.se-news-scene { padding: 70px 0 40px; text-align: center; background: var(--se-bg); }
+.se-news-scene h2 {
+    font-family: var(--se-font-editorial); font-weight: 600; font-optical-sizing: auto;
+    font-size: clamp(24px, 2.8vw, 32px); color: var(--se-text-bright);
+    letter-spacing: -0.01em; margin: 0 0 36px;
+    opacity: 0; transform: translateY(18px);
+    transition: opacity 0.7s 0.08s var(--se-ease), transform 0.7s 0.08s var(--se-ease);
+}
+.se-news-scene h2.se-in-view { opacity: 1; transform: translateY(0); }
+
+.se-news-marquee {
+    position: relative;
+    width: 100%;
+    opacity: 0; transition: opacity 0.7s var(--se-ease);
+}
+.se-news-marquee.se-in-view { opacity: 1; }
+
+/* El mask-image (el "difuminado" de los bordes) vive acá, no en
+   .se-news-marquee -- así las flechas (hermanas de este div, no hijas)
+   quedan fuera del degradé y no se apagan junto con los bordes de la
+   cinta. Antes iba de 5% a 95% (zona de difuminado muy angosta, ~50-70px
+   en desktop): se sentía como un corte abrupto contra el negro del fondo
+   en vez de un desvanecido. Ensanchado a 16%/84%. */
+.se-news-viewport {
+    overflow: hidden;
+    /* Antes iba a "transparent" en los extremos -- eso siempre termina
+       revelando el fondo casi negro de la página completo, así que por más
+       ancha que fuera la zona de difuminado, el borde se sentía como un
+       "corte a negro". Ahora el extremo no baja de 18% de opacidad: la
+       tarjeta se atenúa pero nunca desaparece del todo contra el fondo. */
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, #000 20%, #000 80%, rgba(0,0,0,0.18) 100%);
+    mask-image: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, #000 20%, #000 80%, rgba(0,0,0,0.18) 100%);
+}
+
+.se-news-track {
+    display: flex; width: max-content;
+    /* 48s tenía sentido cuando la cinta vivía en una columna de 1100px:
+       recorrer el 50% de su propio ancho a esa velocidad ya movía varias
+       tarjetas por segundo dentro de esa ventana angosta. Con la landing
+       ahora a ancho completo (ver el fix de .se-page más arriba) se ven
+       6-7 tarjetas a la vez en vez de 4 -- la velocidad real en px/s no
+       cambió, pero como "una vuelta completa de contenido nuevo" ahora
+       significa recorrer una ventana mucho más ancha, se sentía casi
+       estática. Bajado a 22s para que el movimiento se note de verdad.*/
+    animation: se-marquee 22s linear infinite;
+}
+.se-news-marquee:hover .se-news-track,
+.se-news-marquee:focus-within .se-news-track { animation-play-state: paused; }
+
+/* Manual mode: una vez que se usa una flecha, la animación automática se
+   reemplaza por un transform controlado desde JS (static/js/landing.js) —
+   no se puede mezclar "animation" con transform inline sin conflicto. */
+.se-news-track.se-news-track-manual {
+    animation: none;
+    transition: transform 0.4s var(--se-ease);
+}
+
+/* Flechas de navegación manual: barras que ocupan toda la altura de la
+   tarjeta (no un botón circular chico), presentes pero desvanecidas por
+   default -- se acentúan (opacidad completa + color de foco) al pasar el
+   cursor o con foco de teclado, así siguen siendo usables aunque casi no
+   se noten en reposo. Quedan fuera de .se-news-viewport (ver arriba) para
+   no verse afectadas por su mask-image. */
+.se-news-nav {
+    position: absolute; top: 0; bottom: 0;
+    z-index: 3;
+    width: 64px;
+    display: flex; align-items: center; justify-content: center;
+    border: none;
+    color: var(--se-text-bright);
+    font-size: 1.5rem;
+    opacity: 0.3;
+    cursor: pointer;
+    transition: opacity 0.3s var(--se-ease), color 0.3s var(--se-ease);
+}
+.se-news-nav-prev {
+    left: 0;
+    background: linear-gradient(90deg, rgba(6,9,17,0.85) 0%, rgba(6,9,17,0) 100%);
+}
+.se-news-nav-next {
+    right: 0;
+    background: linear-gradient(270deg, rgba(6,9,17,0.85) 0%, rgba(6,9,17,0) 100%);
+}
+.se-news-nav:hover,
+.se-news-nav:focus-visible {
+    opacity: 1;
+    color: var(--se-accent);
+}
+
+.se-news-track-set { display: flex; }
+
+.se-news-card {
+    display: block; flex: 0 0 320px; width: 320px; margin: 0 12px;
+    border-radius: var(--se-radius); overflow: hidden;
+    background: var(--se-bg-elevated);
+    border: 1px solid rgba(148,163,184,0.4);
+    box-shadow: 0 20px 44px -22px rgba(0,0,0,0.6);
+    text-decoration: none;
+    transition: transform 0.25s var(--se-ease), border-color 0.25s var(--se-ease);
+}
+.se-news-card:hover { transform: translateY(-4px); border-color: var(--se-accent); }
+
+.se-news-card-img {
+    display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+    background: linear-gradient(160deg, var(--se-bg-inset), var(--se-bg-elevated));
+}
+.se-news-card-img-empty {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: var(--se-accent-strong); opacity: 0.5;
+}
+
+.se-news-card-body { padding: 16px 18px 20px; text-align: left; }
+.se-news-date { font-size: 0.68rem; color: var(--se-text-muted); font-family: var(--se-font-mono); }
+.se-news-title {
+    font-size: 0.92rem; color: var(--se-text-bright); margin: 7px 0 6px; font-weight: 700; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.se-news-card:hover .se-news-title { color: var(--se-accent-strong); }
+.se-news-desc {
+    font-size: 0.78rem; color: var(--se-text-muted); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+@keyframes se-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .se-news-track { animation: none; }
+    .se-news-track-set[aria-hidden="true"] { display: none; }
+    .se-news-track { flex-wrap: wrap; width: auto; justify-content: center; }
+    /* Sin animación no hay nada que navegar -- todas las tarjetas ya están
+       visibles a la vez en una grilla estática. */
+    .se-news-nav { display: none; }
+}
+
+@media (max-width: 640px) {
+    /* Se mantiene la cinta continua + flechas completas en vez de pasar a
+       scroll-snap manual -- ese cambio no resolvía el problema real, que
+       era otro: 260px de tarjeta + 24px de margen (284px) no divide 390px de
+       viewport en un número entero de tarjetas, así que en cualquier
+       punto de la animación queda una tarjeta a medio entrar/salir. La
+       solución no es dejar de animar -- es que esa tarjeta a medias se
+       diluya de verdad en vez de quedar cortada en seco: se ensancha
+       mucho la zona de difuminado (ver .se-news-viewport en el bloque
+       base, arriba, iba de 16%/84%) para que cubra casi el ancho de una
+       tarjeta completa a cada lado. Así solo queda una tarjeta nítida al
+       centro por vez, y las vecinas se ven apareciendo/desvaneciendo, no
+       cortadas a la mitad. */
+    .se-news-viewport {
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 62%, transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 62%, transparent 100%);
+    }
+    /* La zona angosta de arriba (38%/62%) tiene sentido con la cinta en
+       movimiento continuo -- ninguna tarjeta se queda quieta el tiempo
+       suficiente para notar que ni siquiera el centro llega a opacidad
+       completa (una tarjeta de 260px nunca entra entera en una ventana de
+       ~99px). Al navegar con las flechas la cinta SÍ se queda quieta en
+       cada paso, y esa misma ventana angosta hace que la tarjeta activa
+       se vea desvanecida de los dos lados en vez de completa. En modo
+       manual (.se-news-marquee-manual, ver landing.js) se
+       vuelve a la zona más ancha que ya usa desktop, suficiente para que
+       una tarjeta completa quede nítida de punta a punta. */
+    .se-news-marquee-manual .se-news-viewport {
+        -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, #000 20%, #000 80%, rgba(0,0,0,0.18) 100%);
+        mask-image: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, #000 20%, #000 80%, rgba(0,0,0,0.18) 100%);
+    }
+    .se-news-card { flex: 0 0 260px; width: 260px; }
+    .se-news-nav { width: 44px; font-size: 1.2rem; }
+}
+
+/* --- CTA final --- */
+.se-final-cta-scene {
+    position: relative;
+    text-align: center; padding: 90px 24px 110px; max-width: 560px; margin: 0 auto;
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.7s var(--se-ease), transform 0.7s var(--se-ease);
+}
+/* .se-final-cta-scene tiene max-width+margin:auto (su caja no ocupa todo
+   el ancho de la ventana), así que el fondo sólido -- para tapar el
+   canvas fixed de la red de nodos, ver el comentario de
+   .se-statement-scene -- va en un pseudo-elemento "full-bleed" en vez de
+   en la sección misma, sin alterar su ancho/centrado. */
+.se-final-cta-scene::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: var(--se-bg);
+    z-index: -1;
+}
+.se-final-cta-scene.se-in-view { opacity: 1; transform: translateY(0); }
+.se-final-cta-scene h2 {
+    font-family: var(--se-font-editorial); font-weight: 600; font-optical-sizing: auto;
+    font-size: clamp(26px, 3.6vw, 38px); color: var(--se-text-bright); margin-bottom: 12px; letter-spacing: -0.01em;
+}
+.se-final-cta-scene p { color: var(--se-text-muted); margin-bottom: 26px; }
+
+.se-landing-footer { text-align: center; padding: 32px; color: var(--se-text-muted); font-size: 0.78rem; }
+
+@media (max-width: 850px) {
+    .se-hero-cinematic .se-hero-title { font-size: 2rem; }
+    .se-feature-row, .se-feature-scene:nth-of-type(even) .se-feature-row {
+        flex-direction: column; text-align: center;
+    }
+    /* Bug real, mismo mecanismo que el de .se-media-frame más abajo pero en
+       el elemento hermano, que se había quedado sin el mismo arreglo:
+       .se-feature-text trae `flex: 0 1 400px` para el layout de escritorio
+       (fila, 400px = ancho objetivo). En columna, ese flex-basis controla
+       el ALTO -- el bloque de texto quedaba inflado a 400px de alto real
+       (medido en vivo) aunque el título+párrafo ocuparan una fracción de
+       eso, dejando aire vacío entre el texto y la imagen de abajo. */
+    .se-feature-text { flex: none; max-width: 100%; }
+    .se-feature-copy { margin: 0 auto; }
+    /* Título, párrafo e imagen deben aparecer como una sola pieza al
+       hacer scroll -- en escritorio están escalonados a propósito
+       (título, párrafo, imagen se revelan en cascada) porque la imagen
+       entra desde el costado (translateX) mientras el texto está al
+       lado, así que no compiten por el mismo espacio visual. En mobile
+       todo apila en una columna: con el mismo delay/duración/distancia
+       distintos de arriba, el título terminaba de asentarse (0.78s)
+       bastante antes que la imagen (antes 0.9s, con translateY(36px)) --
+       durante esa brecha se ve el título ya quieto arriba y la imagen
+       todavía deslizándose por debajo, partido en dos en vez de una
+       sola pieza subiendo junta. Mismo delay y duración para los tres,
+       y la imagen viaja la misma
+       distancia que el título en vez de más del doble. */
+    .se-feature-scene h2,
+    .se-feature-copy,
+    .se-media-frame, .se-feature-scene:nth-of-type(even) .se-media-frame {
+        transition-delay: 0s;
+        transition-duration: 0.6s;
+    }
+    .se-media-frame, .se-feature-scene:nth-of-type(even) .se-media-frame { transform: translateY(18px); }
+    .se-media-frame.se-in-view { transform: translateY(0); }
+    /* Bug real: .se-media-frame trae `flex: 1 1 560px` para el layout de
+       escritorio, donde .se-feature-row es una fila y ese 560px fija un
+       ANCHO objetivo. Acá .se-feature-row pasa a columna (arriba en este
+       mismo media query) -- en un flex container en columna, flex-basis
+       controla el ALTO, no el ancho. El resultado: el marco quedaba
+       forzado a 560px de alto en las 4 escenas sin importar el tamaño real
+       de la captura (medido en vivo: imágenes de 141-200px de alto dentro
+       de un marco de 560px, 360-420px de espacio vacío) -- "tarjeta muy
+       larga separada del texto, imagen arriba y el resto vacío". */
+    .se-media-frame { flex: none; width: 100%; }
+    /* Antes se había puesto min-height:0 acá pensando que el "aire" vacío
+       venía del min-height en sí -- en realidad venía casi todo del bug de
+       .se-feature-text (arriba: flex-basis inflando el bloque de texto a
+       400px de alto real) más el de .se-media-frame (560px). Con esos dos
+       corregidos de verdad, min-height:0 se pasó de la raya: las escenas
+       quedaban tan cortas que 2-3 entraban en una sola pantalla a la vez,
+       perdiendo el ritmo "una escena, una pantalla" que tiene el resto del
+       scroll cinematográfico -- se amontonaban varias tarjetas juntas.
+       Restaurado a 100vh (ya no hay bug que inflar por
+       arriba de eso): cada escena vuelve a ocupar la pantalla completa en
+       mobile, con el texto+imagen centrados adentro, sin el aire fantasma
+       de antes. */
+    .se-feature-scene { min-height: 100vh; }
+
+    /* .se-news-scene no tenía ningún alto propio (solo padding), así que
+       quedaba angosta -- pegada contra el CTA final, sin el mismo "aire de
+       pantalla completa" que el resto de las escenas, y afuera del
+       scroll-snap de abajo: la sección de noticias quedaba muy pegada
+       con la de encima, sin apreciarse bien. Mismo tratamiento que
+       .se-statement-scene: alto completo, contenido
+       centrado adentro. */
+    .se-news-scene {
+        min-height: 100vh;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 24px;
+    }
+
+    /* Mismo tratamiento que .se-news-scene y por el mismo motivo: sin
+       min-height propio, el CTA final medía mucho menos que una pantalla
+       -- un swipe normal lo cruzaba de largo y quedaba escondido al fondo
+       de la página en vez de ser la última parada real del scroll: el
+       texto bajaba enseguida y quedaba fuera de vista. Antes se dejaba
+       fuera del scroll-snap a propósito
+       (comentario más abajo, ya desactualizado) asumiendo que al ser la
+       última sección no hacía falta -- en la práctica sí hace falta,
+       porque sin altura de pantalla completa el navegador no tiene un
+       punto natural donde asentarse encima suyo. */
+    .se-final-cta-scene {
+        min-height: 100vh;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 24px;
+    }
+
+    /* Scroll snap: en escritorio texto+imagen van lado a lado, así que
+       cruzar de una escena a la siguiente no muestra pedazos sueltos de
+       ambas a la vez. En mobile (columna, cada escena a pantalla completa)
+       sí pasa -- con scroll libre, cualquier punto de scroll es válido, así
+       que es normal terminar a mitad de camino viendo el final de una
+       escena y el principio de la siguiente, las dos partidas a la mitad.
+       Alcanza a hero/statement/feature-scenes/noticias/CTA final -- todas con alto
+       de pantalla completa en mobile ahora (ver más arriba), así que
+       todas necesitan su propio punto de asentado. scroll-margin-top
+       compensa el nav fijo para que el título no quede tapado al asentar.
+
+       `mandatory` + `scroll-snap-stop: always` (no `proximity` sola):
+       con proximity, un swipe con impulso normal "vuela" con el momentum
+       del dedo y recién frena donde sea que se le acabe el envión -- en un
+       teléfono real eso alcanza y sobra para saltarse 3-4 secciones de
+       largo. `scroll-snap-stop: always` obliga al
+       navegador a parar en la siguiente sección sí o sí, sin dejar que el
+       scroll la cruce de largo aunque el swipe traiga fuerza -- un swipe,
+       una sección, siempre, sin importar qué tan fuerte se deslice. */
+    html { scroll-snap-type: y mandatory; }
+    .se-hero-cinematic, .se-statement-scene, .se-feature-scene, .se-news-scene, .se-final-cta-scene {
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        scroll-margin-top: 90px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* .se-navbar (style.css) pasa a columna + alineado a la izquierda acá
+       -- razonable para el nav chico de páginas internas, pero en el nav
+       cinematográfico (marca grande con ícono) dejaba "Iniciar sesión"
+       pegado al borde izquierdo, suelto, en vez de acompañar a la marca
+       ("claramente no está bien, hay que darle mejor orientación"). Se
+       centra todo el contenido de la píldora en vez de alinearlo a la
+       izquierda. */
+    .se-cinematic-nav .se-navbar { align-items: center; }
+    .se-cinematic-brand-group { justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .se-scroll-cue .se-scroll-line { animation: none; }
+}

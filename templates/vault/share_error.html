@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Enlace no disponible - SuiteEncript{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<main id="main-content" class="se-page-narrow">
+    <div class="se-card se-text-center">
+        <i class="bi bi-exclamation-octagon se-icon-lg se-c-danger"></i>
+        <h2 class="se-font-display se-mt-lg se-mb-0">Enlace no disponible</h2>
+        <p class="se-text-muted se-mb-0">{{ error }}</p>
+    </div>
+</main>
+{% endblock %}

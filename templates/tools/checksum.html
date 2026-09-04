@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Checksums - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <h2 class="se-card-title"><span class="se-icon-badge"><i class="bi bi-shield-check"></i></span> Verificador de Integridad (Checksums)</h2>
+    <form action="{{ url_for('tools.checksum') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="se-form-group">
+            <label for="file">Opción A: subir archivo</label>
+            <input type="file" id="file" name="file" class="se-input">
+        </div>
+        <div class="se-form-group">
+            <label for="text_input">Opción B: pegar texto plano</label>
+            <textarea id="text_input" name="text_input" rows="2" class="se-input" placeholder="Escribe o pega texto aquí..."></textarea>
+        </div>
+        <div class="se-form-group">
+            <label for="expected_hash">Hash esperado para comparar (opcional)</label>
+            <input type="text" id="expected_hash" name="expected_hash" value="{{ expected_hash }}" class="se-input se-font-mono" placeholder="Pega el hash conocido aquí para verificar integridad">
+        </div>
+        <button type="submit" class="se-btn se-btn-primary se-btn-block"><i class="bi bi-cpu"></i> Calcular hashes</button>
+    </form>
+</div>
+
+{% if match_result %}
+    <div class="se-alert se-alert-{{ match_result.status }} se-fw-bold">{{ match_result.msg }}</div>
+{% endif %}
+
+{% if hashes %}
+    <div class="se-card" data-se-reveal>
+        <h2 class="se-card-title">Resultados</h2>
+        <div class="se-form-group">
+            <label for="hash_sha256">SHA-256</label>
+            <input type="text" id="hash_sha256" readonly class="se-input se-font-mono se-c-accent" value="{{ hashes.sha256 }}">
+        </div>
+        <div class="se-form-group">
+            <label for="hash_sha512">SHA-512</label>
+            <input type="text" id="hash_sha512" readonly class="se-input se-font-mono" value="{{ hashes.sha512 }}">
+        </div>
+        <div class="se-grid se-grid-2">
+            <div class="se-form-group">
+                <label for="hash_sha1">SHA-1</label>
+                <input type="text" id="hash_sha1" readonly class="se-input se-font-mono" value="{{ hashes.sha1 }}">
+            </div>
+            <div class="se-form-group">
+                <label for="hash_md5">MD5</label>
+                <input type="text" id="hash_md5" readonly class="se-input se-font-mono" value="{{ hashes.md5 }}">
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

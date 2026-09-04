@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Bóveda de Texto - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <h2 class="se-card-title"><span class="se-icon-badge se-icon-badge-warning"><i class="bi bi-journal-lock"></i></span> Bóveda de Texto</h2>
+    <form action="{{ url_for('tools.text_vault') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="se-form-group">
+            <label for="input_text">Texto</label>
+            <textarea id="input_text" name="input_text" rows="5" class="se-input" placeholder="Escribe la nota a cifrar, o pega aquí un texto cifrado para descifrarlo...">{{ request.form.get('input_text', '') }}</textarea>
+        </div>
+        <div class="se-form-group">
+            <label for="custom_password">Contraseña personalizada (opcional)</label>
+            <div class="se-password-group">
+                <input type="password" id="custom_password" name="custom_password" class="se-input" placeholder="Déjalo en blanco para usar la clave maestra de la bóveda">
+                <button type="button" class="se-peek-password" data-se-peek-password="custom_password" aria-label="Mantén pulsado para ver la contraseña">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+            <div class="se-text-muted se-text-xs se-mt-sm">Si cifras con una contraseña personalizada, necesitarás la misma para descifrar.</div>
+        </div>
+        <div class="se-flex">
+            <button type="submit" name="action" value="encrypt" class="se-btn se-btn-secondary se-btn-block"><i class="bi bi-lock-fill"></i> Cifrar</button>
+            <button type="submit" name="action" value="decrypt" class="se-btn se-btn-outline se-btn-block"><i class="bi bi-unlock-fill"></i> Descifrar</button>
+        </div>
+    </form>
+</div>
+
+{% if result_text %}
+    <div class="se-card" data-se-reveal>
+        <h2 class="se-card-title">Resultado</h2>
+        <textarea readonly rows="5" class="se-input se-c-accent">{{ result_text }}</textarea>
+    </div>
+{% endif %}
+{% endblock %}

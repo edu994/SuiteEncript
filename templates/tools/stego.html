@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Esteganografía - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <h2 class="se-card-title"><span class="se-icon-badge se-icon-badge-accent-2"><i class="bi bi-image"></i></span> Esteganografía en Imágenes</h2>
+    <form action="{{ url_for('tools.steganography') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="se-form-group">
+            <label for="image_file">Imagen (PNG o JPG)</label>
+            <input type="file" id="image_file" name="image_file" class="se-input" required>
+        </div>
+        <div class="se-form-group">
+            <label for="secret_text">Mensaje secreto (solo necesario para ocultar)</label>
+            <textarea id="secret_text" name="secret_text" rows="3" class="se-input" placeholder="Escribe aquí el mensaje a ocultar..."></textarea>
+        </div>
+        <div class="se-flex">
+            <button type="submit" name="action" value="hide" class="se-btn se-btn-secondary se-btn-block"><i class="bi bi-eye-slash"></i> Ocultar mensaje</button>
+            <button type="submit" name="action" value="extract" class="se-btn se-btn-outline se-btn-block"><i class="bi bi-eye"></i> Extraer mensaje</button>
+        </div>
+    </form>
+</div>
+
+{% if extracted_message %}
+    <div class="se-card">
+        <h2 class="se-card-title">Mensaje extraído</h2>
+        <textarea readonly rows="4" class="se-input se-c-accent-2">{{ extracted_message }}</textarea>
+    </div>
+{% endif %}
+{% endblock %}

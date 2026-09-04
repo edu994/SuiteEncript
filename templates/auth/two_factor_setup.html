@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Activar 2FA - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <div class="se-card-title">Verificación en dos pasos</div>
+
+    {% if backup_codes %}
+        <p class="se-c-warning se-fw-bold">Guardá estos códigos de respaldo ahora — no se van a volver a mostrar.</p>
+        <p class="se-text-muted se-text-sm">Cada uno sirve para iniciar sesión una sola vez, por si perdés el acceso a tu app autenticadora.</p>
+
+        <div class="se-grid se-grid-2 se-mb-sm">
+            {% for code in backup_codes %}
+                <code class="se-input se-c-accent-2 se-text-center">{{ code }}</code>
+            {% endfor %}
+        </div>
+
+        <a href="{{ url_for('auth.account') }}" class="se-btn se-btn-primary se-btn-block">Ya los guardé, continuar</a>
+    {% else %}
+        <p>1. Escaneá este código QR con tu app autenticadora (Google Authenticator, Authy, etc.):</p>
+        <div class="se-flex-col-center se-mb-sm">
+            <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Código QR para activar 2FA" width="220" height="220">
+        </div>
+        <p class="se-text-sm">¿No podés escanear? Ingresá este código manualmente: <code class="se-c-accent">{{ secret }}</code></p>
+
+        <p class="se-mt-lg">2. Ingresá el código de 6 dígitos que te muestra la app para confirmar:</p>
+
+        {% include "_flashes.html" %}
+
+        <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="se-form-group">
+                <label for="code">Código de 6 dígitos</label>
+                <input type="text" id="code" name="code" class="se-input" required pattern="[0-9]{6}" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+            </div>
+            <button type="submit" class="se-btn se-btn-primary se-btn-block">Confirmar y activar</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

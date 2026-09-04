@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Mi cuenta - SuiteEncript{% endblock %}
+{% block content %}
+<h2 class="se-section-title"><i class="bi bi-person-gear"></i> Mi cuenta</h2>
+
+<div class="se-card se-mb-lg">
+    <div class="se-card-title">Datos de la cuenta</div>
+    <div class="se-grid se-grid-3">
+        <div>
+            <div class="se-text-xs se-text-muted">Usuario</div>
+            <div class="se-font-mono">{{ user.username }}</div>
+        </div>
+        <div>
+            <div class="se-text-xs se-text-muted">Email</div>
+            <div class="se-font-mono">{{ user.email or 'Sin definir todavía' }}</div>
+        </div>
+        <div>
+            <div class="se-text-xs se-text-muted">Miembro desde</div>
+            <div class="se-font-mono">{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else '—' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="se-grid se-grid-2 se-mb-lg">
+    <div class="se-card">
+        <div class="se-card-title">Cambiar contraseña</div>
+        <form action="{{ url_for('auth.change_password') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="se-form-group">
+                <label for="current_password_pw">Contraseña actual</label>
+                <div class="se-password-group">
+                    <input type="password" id="current_password_pw" name="current_password" class="se-input" autocomplete="current-password" required>
+                    <button type="button" class="se-peek-password" data-se-peek-password="current_password_pw" aria-label="Mantén pulsado para ver la contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="se-form-group">
+                <label for="new_password">Contraseña nueva</label>
+                <div class="se-password-group">
+                    <input type="password" id="new_password" name="new_password" class="se-input" autocomplete="new-password" required minlength="10">
+                    <button type="button" class="se-peek-password" data-se-peek-password="new_password" aria-label="Mantén pulsado para ver la contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="se-btn se-btn-primary se-btn-block">Actualizar contraseña</button>
+        </form>
+    </div>
+
+    <div class="se-card">
+        <div class="se-card-title">Email</div>
+        <p class="se-text-muted se-text-sm">Lo usamos solo para "olvidé mi contraseña" — sin un email asociado, esa opción no funciona para tu cuenta.</p>
+        {% if user.email %}
+            {% if user.email_verified %}
+                <span class="se-badge se-badge-info se-mb-sm"><i class="bi bi-check-circle"></i> Verificado</span>
+            {% else %}
+                <div class="se-flex se-mb-sm">
+                    <span class="se-badge se-badge-warning"><i class="bi bi-exclamation-circle"></i> Sin verificar</span>
+                    <form action="{{ url_for('auth.resend_verification') }}" method="POST" class="se-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="se-btn se-btn-ghost se-btn-sm">Reenviar verificación</button>
+                    </form>
+                </div>
+            {% endif %}
+        {% endif %}
+        <form action="{{ url_for('auth.update_email') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="se-form-group">
+                <label for="current_password_email">Contraseña actual</label>
+                <div class="se-password-group">
+                    <input type="password" id="current_password_email" name="current_password" class="se-input" autocomplete="current-password" required>
+                    <button type="button" class="se-peek-password" data-se-peek-password="current_password_email" aria-label="Mantén pulsado para ver la contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="se-form-group">
+                <label for="new_email">Email nuevo</label>
+                <input type="email" id="new_email" name="new_email" class="se-input" autocomplete="email" value="{{ user.email or '' }}" required>
+            </div>
+            <button type="submit" class="se-btn se-btn-secondary se-btn-block">{{ 'Actualizar email' if user.email else 'Agregar email' }}</button>
+        </form>
+    </div>
+</div>
+
+<h2 class="se-section-title"><i class="bi bi-shield-lock"></i> Seguridad</h2>
+<div class="se-grid se-grid-2">
+    <div class="se-card se-tile">
+        <div>
+            <h3 class="se-font-display {{ 'se-c-accent-2' if totp_enabled else 'se-c-warning' }}">
+                <i class="bi bi-shield-{{ 'check' if totp_enabled else 'exclamation' }}"></i>
+                Verificación en dos pasos (2FA)
+            </h3>
+            {% if totp_enabled %}
+                <p>Activa. Tu cuenta pide un código de tu app autenticadora al iniciar sesión.</p>
+            {% else %}
+                <p>No activa. Sumá una capa extra de seguridad con una app autenticadora (Google Authenticator, Authy, etc.).</p>
+            {% endif %}
+        </div>
+        {% if totp_enabled %}
+            <form action="{{ url_for('auth.disable_2fa') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="se-form-group se-mb-0">
+                    <label for="disable_2fa_password" class="se-sr-only">Confirmá tu contraseña</label>
+                    <div class="se-password-group">
+                        <input type="password" id="disable_2fa_password" name="password" class="se-input" autocomplete="current-password" placeholder="Confirmá tu contraseña" required>
+                        <button type="button" class="se-peek-password" data-se-peek-password="disable_2fa_password" aria-label="Mantén pulsado para ver la contraseña">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="se-btn se-btn-danger se-btn-block se-mt-sm">Desactivar 2FA</button>
+            </form>
+        {% else %}
+            <a href="{{ url_for('auth.setup_2fa') }}" class="se-btn se-btn-primary se-btn-block">Activar 2FA</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

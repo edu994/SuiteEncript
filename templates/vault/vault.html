@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Bóveda de Archivos - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <h2 class="se-card-title">Subir nuevo archivo</h2>
+    <form action="{{ url_for('vault.upload_file') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="se-grid se-grid-3">
+            <div class="se-form-group">
+                <label for="file">Seleccionar archivo</label>
+                <input type="file" id="file" name="file" class="se-input" required>
+            </div>
+            <div class="se-form-group">
+                <label for="expiration_hours">Expiración (horas)</label>
+                <input type="number" id="expiration_hours" name="expiration_hours" class="se-input" placeholder="Ej: 24">
+            </div>
+            <div class="se-form-group">
+                <label for="share_password">Clave del enlace (opcional)</label>
+                <div class="se-password-group">
+                    <input type="password" id="share_password" name="share_password" class="se-input" placeholder="Opcional">
+                    <button type="button" class="se-peek-password" data-se-peek-password="share_password" aria-label="Mantén pulsado para ver la contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="se-flex-between">
+            <div class="se-flex">
+                <label class="se-checkbox"><input type="checkbox" name="is_one_time" id="is_one_time"> Autodestruir tras 1ª descarga</label>
+                <label class="se-checkbox"><input type="checkbox" name="enable_share" id="enable_share" checked> Generar enlace público</label>
+            </div>
+            <button type="submit" class="se-btn se-btn-primary"><i class="bi bi-upload"></i> Subir a la bóveda</button>
+        </div>
+    </form>
+</div>
+
+<div class="se-card">
+    <h2 class="se-card-title">Archivos almacenados</h2>
+    {% if files %}
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tamaño</th>
+                        <th>Hash (SHA-256)</th>
+                        <th>Estado / Opciones</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td><strong>{{ file.original_filename }}</strong></td>
+                        <td class="se-text-muted">{{ (file.file_size_bytes / 1024)|round(1) }} KB</td>
+                        <td class="se-text-muted se-font-mono">{{ file.file_hash[:12] }}...</td>
+                        <td>
+                            {% if file.is_one_time_download %}
+                                <span class="se-badge se-badge-warning">Efímero</span>
+                            {% endif %}
+                            {% if file.share_token %}
+                                <button type="button" class="se-btn se-btn-outline se-btn-sm"
+                                        data-se-copy-text="{{ url_for('vault.shared_download', token=file.share_token, _external=True) }}"
+                                        data-se-copy-message="Enlace de descarga copiado al portapapeles.">
+                                    <i class="bi bi-link-45deg"></i> Copiar link
+                                </button>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="se-flex">
+                                <a href="{{ url_for('vault.download_file', file_id=file.id) }}" class="se-btn se-btn-secondary se-btn-sm"><i class="bi bi-download"></i></a>
+                                <form action="{{ url_for('vault.delete_file', file_id=file.id) }}" method="POST" onsubmit="return confirm('¿Eliminar archivo?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="se-btn se-btn-danger se-btn-sm"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="se-empty">No tienes archivos en la bóveda actualmente.</div>
+    {% endif %}
+</div>
+{% endblock %}

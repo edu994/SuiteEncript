@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SuiteEncript{% endblock %}
+{% block content %}
+<h2 class="se-section-title"><i class="bi bi-folder-symlink"></i> Bóvedas principales</h2>
+<div class="se-grid se-grid-2 se-mb-lg">
+    <div class="se-card se-card-interactive se-tile" data-se-reveal>
+        <div>
+            <h3 class="se-font-display se-c-accent"><i class="bi bi-key-fill"></i> Bóveda de Credenciales</h3>
+            <p>Almacena y gestiona contraseñas y accesos con cifrado AES-256-GCM.</p>
+            <p class="se-tile-stat">
+                <span class="se-tile-stat-value">{{ password_count }}</span>
+                {{ 'credencial guardada' if password_count == 1 else 'credenciales guardadas' }}
+            </p>
+        </div>
+        <a href="{{ url_for('passwords.passwords') }}" class="se-btn se-btn-primary se-btn-block">Abrir credenciales</a>
+    </div>
+    <div class="se-card se-card-interactive se-tile" data-se-reveal>
+        <div>
+            <h3 class="se-font-display se-c-accent-2"><i class="bi bi-safe-fill"></i> Bóveda de Archivos</h3>
+            <p>Sube y almacena documentos cifrados en disco con AES-256-GCM.</p>
+            <p class="se-tile-stat">
+                <span class="se-tile-stat-value">{{ file_count }}</span>
+                {{ 'archivo' if file_count == 1 else 'archivos' }} · {{ used_mb }} de {{ quota_mb }}MB usados
+            </p>
+        </div>
+        <a href="{{ url_for('vault.index') }}" class="se-btn se-btn-secondary se-btn-block">Abrir archivos</a>
+    </div>
+</div>
+
+<h2 class="se-section-title"><i class="bi bi-tools"></i> Herramientas criptográficas</h2>
+<div class="se-grid se-grid-3">
+    <div class="se-card se-card-interactive se-tile" data-se-reveal>
+        <div>
+            <h3 class="se-font-display se-c-accent"><i class="bi bi-shield-check"></i> Checksums</h3>
+            <p>Calcula y verifica firmas SHA-256, SHA-512 y MD5.</p>
+        </div>
+        <a href="{{ url_for('tools.checksum') }}" class="se-btn se-btn-outline se-btn-block">Ir a checksums</a>
+    </div>
+    <div class="se-card se-card-interactive se-tile" data-se-reveal>
+        <div>
+            <h3 class="se-font-display se-c-warning"><i class="bi bi-file-earmark-lock"></i> Notas Rápidas</h3>
+            <p>Cifra y descifra mensajes de texto con AES-256-GCM.</p>
+        </div>
+        <a href="{{ url_for('tools.text_vault') }}" class="se-btn se-btn-outline se-btn-block">Ir a notas</a>
+    </div>
+    <div class="se-card se-card-interactive se-tile" data-se-reveal>
+        <div>
+            <h3 class="se-font-display se-c-accent-2"><i class="bi bi-image"></i> Esteganografía</h3>
+            <p>Oculta y extrae mensajes invisibles dentro de imágenes PNG.</p>
+        </div>
+        <a href="{{ url_for('tools.steganography') }}" class="se-btn se-btn-outline se-btn-block">Ir a esteganografía</a>
+    </div>
+</div>
+{% endblock %}

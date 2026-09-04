@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Generador de Contraseñas - SuiteEncript{% endblock %}
+{% block content %}
+<div class="se-card">
+    <h2 class="se-card-title">Generador de contraseñas</h2>
+
+    <div class="se-flex se-mb-sm">
+        <input type="text" id="passwordResult" class="se-input" value="{{ contrasena }}" readonly placeholder="Tu contraseña aparecerá aquí...">
+        <button type="button" class="se-btn se-btn-outline" data-se-copy="passwordResult" data-se-copy-message="¡Contraseña copiada al portapapeles!">
+            <i class="bi bi-clipboard"></i> Copiar
+        </button>
+    </div>
+
+    {% if contrasena %}
+        {% if pwned_count is none %}
+            <p class="se-text-muted se-text-xs se-mb-sm">No se pudo verificar contra Have I Been Pwned (sin conexión o servicio no disponible).</p>
+        {% elif pwned_count > 0 %}
+            <p class="se-c-warning se-text-sm se-mb-sm"><strong>¡Atención!</strong> Esta contraseña apareció en {{ pwned_count }} filtracion{{ "es" if pwned_count != 1 else "" }} conocida{{ "s" if pwned_count != 1 else "" }}. Generá otra.</p>
+        {% else %}
+            <p class="se-c-accent-2 se-text-sm se-mb-sm"><i class="bi bi-check-circle"></i> No encontrada en ninguna filtración conocida (Have I Been Pwned).</p>
+        {% endif %}
+    {% endif %}
+
+    <form action="{{ url_for('passwords.generator') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="se-form-group">
+            <label for="longitud">Longitud: <span id="valLongitud" class="se-c-accent">16</span> caracteres</label>
+            <input type="range" id="longitud" name="longitud" min="8" max="64" value="16" class="se-input" data-se-range-display="valLongitud">
+        </div>
+        <div class="se-form-group">
+            <label class="se-checkbox"><input type="checkbox" name="mayus" checked> Incluir mayúsculas (A-Z)</label>
+            <label class="se-checkbox"><input type="checkbox" name="numeros" checked> Incluir números (0-9)</label>
+            <label class="se-checkbox"><input type="checkbox" name="simbolos" checked> Incluir símbolos (!@#$%...)</label>
+        </div>
+        <button type="submit" class="se-btn se-btn-primary se-btn-block">Generar contraseña</button>
+    </form>
+</div>
+{% endblock %}

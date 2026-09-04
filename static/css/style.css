@@ -1,0 +1,761 @@
+/* ============================================================
+   SuiteEncript — Sistema de diseño unificado
+   Un único lugar para colores, tipografías y componentes.
+   Antes cada plantilla traía su propio <style> duplicado; ahora
+   todas extienden templates/base.html y usan estas clases.
+
+   Identidad técnica pero moderada: mono para valores de cifrado/hashes,
+   paleta oscura, acentos de color -- sin resplandores de neón, sin texto
+   en mayúsculas por defecto, jerarquía tipográfica cuidada. Nada de
+   "cyberpunk/HUD" (Orbitron, bordes con glow, matrix rain): eso lee como
+   poco profesional para un producto de seguridad real.
+
+   Con transiciones e interactividad en todos los elementos (botones con
+   leve elevación al pasar el mouse, tarjetas con hover más marcado,
+   enlaces con subrayado animado, un punto de estado con pulso sutil,
+   tarjetas que aparecen con una animación de entrada) y algo de
+   profundidad con sombras suaves con color y degradés discretos en
+   botones, para que no quede plana -- sin volver a los resplandores de
+   neón ni al ruido visual. La diferencia con un "glow" cyberpunk: estas
+   sombras son bajas en opacidad y dan sensación de elevación, no de luz
+   encendida.
+   ============================================================ */
+
+:root {
+    --se-bg: #0a0e1a;
+    --se-bg-elevated: #121829;
+    --se-bg-inset: #060911;
+
+    --se-border: rgba(148, 163, 184, 0.14);
+    --se-border-strong: rgba(148, 163, 184, 0.3);
+    --se-border-neutral: #1e293b;
+
+    --se-accent: #5b8def;
+    --se-accent-strong: #8ab4f5;
+    --se-accent-2: #10b981;
+    --se-accent-2-strong: #34d399;
+
+    --se-danger: #ef4444;
+    --se-danger-text: #f87171;
+    --se-warning: #f59e0b;
+    --se-warning-text: #fbbf24;
+    --se-info: #5b8def;
+    --se-success: #10b981;
+
+    --se-text: #cbd5e1;
+    --se-text-muted: #8b96a8;
+    --se-text-bright: #f8fafc;
+
+    --se-font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --se-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --se-font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+
+    --se-radius: 10px;
+    --se-radius-sm: 8px;
+
+    --se-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+body {
+    background-color: var(--se-bg);
+    color: var(--se-text);
+    font-family: var(--se-font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--se-accent); transition: color 0.15s var(--se-ease); }
+
+::selection { background: var(--se-accent); color: var(--se-bg-inset); }
+
+/* ---------- Animaciones ---------- */
+
+@keyframes se-fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes se-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+}
+
+/* Invisible hasta que se recibe foco por teclado (Tab): permite saltar
+   la navegación repetida sin tener que tabular por todo el navbar. */
+.se-skip-link {
+    position: absolute;
+    top: -100px;
+    left: 12px;
+    z-index: 1000;
+    background: var(--se-accent);
+    color: var(--se-bg-inset);
+    padding: 10px 16px;
+    border-radius: var(--se-radius-sm);
+    font-family: var(--se-font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.se-skip-link:focus {
+    top: 12px;
+}
+
+/* Oculto visualmente pero legible por lectores de pantalla — para
+   asociar un <label> a un input cuyo texto ya es evidente por contexto
+   (el placeholder no basta: WCAG 4.1.2 exige un nombre accesible real). */
+.se-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- Layout ---------- */
+
+.se-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    /* La landing (index.html) tiene un canvas fixed detrás de todo el
+       scroll (.se-hero-canvas, z-index:0) -- un elemento posicionado con
+       z-index (aunque sea 0) pinta por encima de cualquier contenido
+       estático sin posición/z-index propio, sin importar el orden en el
+       DOM. Sin esto, el fondo sólido de cada escena (ver landing.css) no
+       alcanzaba a tapar el canvas: seguía pintándose encima. position +
+       z-index acá arman un contexto de apilamiento propio para todo el
+       contenido de página, por encima del canvas. El comentario de
+       .se-hero-canvas ya asumía esto como si estuviera implementado --
+       no lo estaba, quedó como intención sin aplicar. */
+    position: relative;
+    z-index: 1;
+}
+
+.se-page-nav {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 0;
+    /* Contexto de apilamiento propio para todo el navbar (incluido el menú
+       de cuenta) -- sin esto, una tarjeta interactiva del contenido de
+       abajo (con su propia capa de composición por transform/position)
+       puede terminar pintándose por encima del menú desplegable pese a su
+       z-index más alto, según cómo Chromium promueva las capas. */
+    position: relative;
+    z-index: 10;
+}
+
+.se-page-narrow {
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+/* Presencia ambiental detrás de la tarjeta de login/registro -- estático,
+   sin JS ni canvas (a propósito, esta página no lleva el tratamiento de
+   la landing), solo para que no sea "negro plano + una tarjeta". */
+.se-page-narrow::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(480px circle at 18% 20%, rgba(91, 141, 239, 0.1), transparent 60%),
+        radial-gradient(420px circle at 85% 78%, rgba(16, 185, 129, 0.07), transparent 60%);
+}
+
+/* ---------- Navbar ---------- */
+
+.se-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 22px;
+    background: var(--se-bg-elevated);
+    border: 1px solid var(--se-border);
+    border-radius: var(--se-radius-sm);
+    margin-bottom: 28px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+    animation: se-fade-in-up 0.4s var(--se-ease) both;
+}
+
+.se-brand {
+    font-family: var(--se-font-display);
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--se-text-bright);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--se-text-bright) 40%, var(--se-accent-strong));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: filter 0.15s var(--se-ease);
+    display: inline-block;
+}
+
+.se-brand:hover { filter: brightness(1.25); }
+
+.se-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--se-font-body);
+    font-size: 0.72rem;
+    color: var(--se-text-muted);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.se-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--se-accent-2);
+    flex-shrink: 0;
+    animation: se-pulse 2.4s ease-in-out infinite;
+}
+
+.se-nav-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- Account menu (navbar dropdown) ---------- */
+
+.se-account-menu { position: relative; }
+
+.se-account-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--se-text-muted);
+    border: 1px solid var(--se-border-neutral);
+    border-radius: var(--se-radius-sm);
+    padding: 6px 12px 6px 6px;
+    font-family: var(--se-font-display);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s var(--se-ease), border-color 0.15s var(--se-ease), transform 0.15s var(--se-ease);
+}
+.se-account-trigger:hover,
+.se-account-trigger[aria-expanded="true"] {
+    color: var(--se-text-bright);
+    border-color: var(--se-border-strong);
+}
+.se-account-trigger i { font-size: 0.7rem; color: var(--se-text-muted); }
+
+.se-account-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--se-accent);
+    color: var(--se-bg-inset);
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.se-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 200px;
+    /* En pantallas angostas (se nota instalada como PWA) el botón de
+       cuenta queda pegado al borde derecho -- un ancho mínimo fijo de
+       200px, anclado por la derecha, se sale por el borde izquierdo de
+       la pantalla y queda cortado ahí, sin margen. max-width lo limita
+       al espacio real disponible, con el mismo margen de 16px que ya usa
+       .se-page-nav a los costados. */
+    max-width: min(240px, calc(100vw - 32px));
+    background: var(--se-bg-elevated);
+    border: 1px solid var(--se-border);
+    border-radius: var(--se-radius);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+    padding: 6px;
+    z-index: 50;
+}
+.se-dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--se-radius-sm);
+    color: var(--se-text);
+    font-size: 0.84rem;
+    text-decoration: none;
+    transition: background-color 0.15s var(--se-ease), color 0.15s var(--se-ease);
+}
+.se-dropdown-menu a:hover,
+.se-dropdown-menu a:focus-visible { background: rgba(91, 141, 239, 0.1); color: var(--se-text-bright); }
+.se-dropdown-menu a i { width: 16px; text-align: center; color: var(--se-text-muted); }
+.se-dropdown-menu hr { border: none; border-top: 1px solid var(--se-border); margin: 6px 4px; }
+
+/* ---------- Buttons ---------- */
+
+.se-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--se-font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0;
+    padding: 10px 18px;
+    border-radius: var(--se-radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s var(--se-ease), box-shadow 0.2s var(--se-ease), background-color 0.15s var(--se-ease), background-position 0.3s var(--se-ease), border-color 0.15s var(--se-ease), color 0.15s var(--se-ease), filter 0.15s var(--se-ease);
+    line-height: 1.2;
+}
+
+.se-btn:active { transform: translateY(0) scale(0.97); }
+
+/* El atributo HTML `hidden` (usado por el botón de "Instalar app", que
+   arranca oculto hasta que el navegador confirma que se puede instalar)
+   normalmente esconde el elemento vía la hoja de estilos del navegador
+   (`[hidden]{display:none}`) -- pero esa regla tiene la misma
+   especificidad que `.se-btn{display:inline-flex}` de arriba, y al venir
+   antes en la cascada, `.se-btn` gana: el botón quedaba visible desde el
+   arranque en vez de esperar al evento real. Este selector sube la
+   especificidad para que `hidden` sí gane. */
+.se-btn[hidden] { display: none; }
+
+.se-btn-block { width: 100%; }
+
+.se-btn-primary {
+    background: linear-gradient(135deg, var(--se-accent), #4c7de0 60%, var(--se-accent));
+    background-size: 180% 180%;
+    background-position: 0% 50%;
+    color: #051022;
+    box-shadow: 0 4px 14px rgba(91, 141, 239, 0.32);
+}
+.se-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(91, 141, 239, 0.42);
+    background-position: 100% 50%;
+    color: #051022;
+}
+
+.se-btn-secondary {
+    background: linear-gradient(135deg, var(--se-accent-2), #0d9c6f 60%, var(--se-accent-2));
+    background-size: 180% 180%;
+    background-position: 0% 50%;
+    color: #052016;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+.se-btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4);
+    background-position: 100% 50%;
+    color: #052016;
+}
+
+.se-btn-outline { background: transparent; color: var(--se-accent-strong); border-color: var(--se-border-strong); }
+.se-btn-outline:hover { background: rgba(91, 141, 239, 0.12); border-color: var(--se-accent); transform: translateY(-1px); }
+
+.se-btn-danger { background: rgba(239, 68, 68, 0.12); color: var(--se-danger-text); border-color: rgba(239, 68, 68, 0.35); }
+.se-btn-danger:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--se-danger); transform: translateY(-1px); }
+
+.se-btn-ghost { background: transparent; color: var(--se-text-muted); border-color: var(--se-border-neutral); }
+.se-btn-ghost:hover { color: var(--se-text-bright); border-color: var(--se-text-muted); transform: translateY(-1px); }
+
+.se-btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+/* ---------- Cards ---------- */
+
+.se-card {
+    background: linear-gradient(160deg, var(--se-bg-elevated), #0e1424 85%);
+    border: 1px solid var(--se-border);
+    border-radius: var(--se-radius);
+    padding: 22px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+    transition: border-color 0.2s var(--se-ease), box-shadow 0.2s var(--se-ease), transform 0.2s var(--se-ease);
+    animation: se-fade-in-up 0.4s var(--se-ease) both;
+}
+
+.se-card + .se-card { margin-top: 20px; }
+
+/* Dentro de una grilla el espaciado ya lo da .se-grid's `gap` -- sin esto,
+   dos .se-card hermanas en la misma fila (ej. las tarjetas de "Bóvedas
+   principales" del dashboard) quedan desalineadas verticalmente porque la
+   segunda hereda el margen pensado para tarjetas apiladas. */
+.se-grid > .se-card + .se-card { margin-top: 0; }
+
+.se-card-interactive {
+    position: relative;
+    overflow: hidden;
+}
+.se-card-interactive:hover {
+    transform: translateY(-4px);
+    border-color: rgba(91, 141, 239, 0.4);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(91, 141, 239, 0.08);
+}
+/* Resplandor que sigue al puntero -- --se-mx/--se-my los actualiza JS
+   (main.js) en cada mousemove; sin JS (o con prefers-reduced-motion) se
+   queda en el 50%/50% por defecto y simplemente nunca se hace visible. */
+.se-card-interactive::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--se-ease);
+    background: radial-gradient(240px circle at var(--se-mx, 50%) var(--se-my, 50%), rgba(91, 141, 239, 0.16), transparent 65%);
+}
+.se-card-interactive:hover::before { opacity: 1; }
+
+.se-card-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--se-font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--se-text-bright);
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+    border-left: 3px solid var(--se-accent);
+    padding-left: 10px;
+}
+
+.se-section-title {
+    font-family: var(--se-font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--se-text-bright);
+    letter-spacing: -0.01em;
+    text-transform: none;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ---------- Icon badges ----------
+   Reemplaza el ícono de Bootstrap Icons suelto en línea con el texto (el
+   tell más reconocible de los templates Bootstrap/Tailwind genéricos) por
+   un contenedor propio. Se usa en .se-section-title/.se-card-title en todo
+   el proyecto, no solo el dashboard. */
+
+.se-icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: rgba(91, 141, 239, 0.14);
+    color: var(--se-accent-strong);
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+
+.se-icon-badge-accent-2 { background: rgba(16, 185, 129, 0.14); color: var(--se-accent-2-strong); }
+.se-icon-badge-warning { background: rgba(245, 158, 11, 0.14); color: var(--se-warning-text); }
+.se-icon-badge-muted { background: rgba(148, 163, 184, 0.14); color: var(--se-text-muted); }
+
+/* ---------- Grid helper (module/tool cards) ---------- */
+
+.se-grid { display: grid; gap: 16px; }
+.se-form-row { align-items: end; }
+.se-letter-spaced { letter-spacing: 1px; }
+.se-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.se-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.se-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 860px) {
+    .se-grid-2, .se-grid-3, .se-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* Entrada escalonada: cada tarjeta de una grilla aparece un poco después
+   que la anterior, en vez de que todo el contenido salte a la vez. */
+.se-grid > * { animation: se-fade-in-up 0.45s var(--se-ease) both; }
+.se-grid > *:nth-child(1) { animation-delay: 0.02s; }
+.se-grid > *:nth-child(2) { animation-delay: 0.07s; }
+.se-grid > *:nth-child(3) { animation-delay: 0.12s; }
+.se-grid > *:nth-child(4) { animation-delay: 0.17s; }
+.se-grid > *:nth-child(n+5) { animation-delay: 0.2s; }
+
+.se-tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    height: 100%;
+}
+
+.se-tile h4, .se-tile h5 {
+    font-family: var(--se-font-display);
+    font-weight: 700;
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+}
+
+.se-tile p { font-size: 0.82rem; color: var(--se-text-muted); line-height: 1.5; margin: 0; }
+
+/* Dato real en vez de solo decorativo (cuántas credenciales/archivos hay,
+   cuánto espacio se usó) -- ver .se-frame-tag en landing.css, misma idea. */
+.se-tile-stat {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid var(--se-border);
+    font-family: var(--se-font-mono);
+    font-size: 0.72rem !important;
+    color: var(--se-text-muted) !important;
+}
+.se-tile-stat-value {
+    color: var(--se-text-bright);
+    font-weight: 700;
+}
+
+/* ---------- Reveal en scroll (utilidad compartida) ---------- */
+/* [data-se-reveal] -- mismo mecanismo de IntersectionObserver que ya usa
+   la landing (ver static/js/landing.js), promovido acá para el resto de
+   la app. main.js agrega .se-in-view la primera vez que el elemento entra
+   en pantalla y deja de observarlo (no alterna). */
+[data-se-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.5s var(--se-ease), transform 0.5s var(--se-ease);
+}
+[data-se-reveal].se-in-view { opacity: 1; transform: translateY(0); }
+/* Dentro de una .se-grid, el fade-in-up automático al montar (arriba en
+   este archivo) quedaría redundante con este reveal disparado por scroll
+   -- se desactiva puntualmente donde se usa data-se-reveal. */
+.se-grid > [data-se-reveal] { animation: none; }
+
+/* ---------- Forms ---------- */
+
+.se-form-group { margin-bottom: 18px; }
+
+.se-form-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--se-text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 500;
+}
+
+.se-input,
+.se-input[type="text"],
+.se-input[type="password"],
+.se-input[type="number"],
+textarea.se-input,
+select.se-input {
+    width: 100%;
+    padding: 11px 13px;
+    background: var(--se-bg-inset);
+    border: 1px solid var(--se-border);
+    color: var(--se-text-bright);
+    font-family: var(--se-font-body);
+    font-size: 0.88rem;
+    border-radius: var(--se-radius-sm);
+    transition: border-color 0.15s var(--se-ease), box-shadow 0.2s var(--se-ease);
+}
+
+.se-input:hover { border-color: var(--se-border-strong); }
+
+.se-input:focus {
+    outline: none;
+    border-color: var(--se-accent);
+    box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.22);
+}
+
+/* Los inputs de solo lectura no fuerzan color: el contexto decide con
+   se-c-accent / se-c-accent-2 / etc. cuál merece destacar. */
+.se-input.se-c-accent { color: var(--se-accent-strong); font-family: var(--se-font-mono); }
+.se-input.se-c-accent-2 { color: var(--se-accent-2-strong); font-family: var(--se-font-mono); }
+
+.se-input[type="range"] {
+    padding: 0;
+    background: transparent;
+    border: none;
+    accent-color: var(--se-accent);
+}
+.se-input[type="range"]:focus { box-shadow: none; }
+
+/* Campo de contraseña con "ojo" que revela el texto solo mientras se
+   mantiene el puntero encima (o pulsado, en táctil) — no es un
+   interruptor que se queda fijo. */
+.se-password-group { position: relative; }
+.se-password-group .se-input { padding-right: 42px; }
+
+.se-peek-password {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--se-radius-sm);
+    color: var(--se-text-muted);
+    cursor: pointer;
+}
+.se-peek-password:hover,
+.se-peek-password:focus-visible { color: var(--se-accent); }
+
+.se-checkbox { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--se-text-muted); cursor: pointer; }
+.se-checkbox input { accent-color: var(--se-accent); }
+.se-checkbox + .se-checkbox { margin-top: 8px; }
+
+.se-form-footer { margin-top: 20px; text-align: center; font-size: 0.82rem; color: var(--se-text-muted); line-height: 1.5; }
+
+.se-form-footer a {
+    font-weight: 600;
+    text-decoration: none;
+    background-image: linear-gradient(var(--se-accent), var(--se-accent));
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 2px;
+    transition: background-size 0.2s var(--se-ease), color 0.15s var(--se-ease);
+    padding-bottom: 1px;
+}
+.se-form-footer a:hover { background-size: 100% 2px; }
+
+/* ---------- Alerts / flash messages ---------- */
+
+.se-alert {
+    padding: 11px 14px;
+    border-radius: var(--se-radius-sm);
+    font-size: 0.82rem;
+    margin-bottom: 16px;
+    border: 1px solid transparent;
+    animation: se-fade-in-up 0.3s var(--se-ease) both;
+}
+
+.se-alert-danger { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); color: var(--se-danger-text); }
+.se-alert-success { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); color: var(--se-accent-2-strong); }
+.se-alert-warning { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: var(--se-warning-text); }
+.se-alert-info { background: rgba(91, 141, 239, 0.1); border-color: rgba(91, 141, 239, 0.3); color: var(--se-accent-strong); }
+
+/* ---------- Tables ---------- */
+
+.se-table-wrap { overflow-x: auto; }
+
+.se-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+
+.se-table th {
+    font-family: var(--se-font-display);
+    color: var(--se-text-muted);
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--se-border-strong);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.se-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--se-border);
+    color: var(--se-text);
+    vertical-align: middle;
+    transition: background-color 0.15s var(--se-ease);
+}
+
+.se-table tr:hover td { background: rgba(91, 141, 239, 0.06); }
+
+/* ---------- Badges ---------- */
+
+.se-badge {
+    display: inline-block;
+    font-family: var(--se-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: 0;
+}
+
+.se-badge-info { background: rgba(91, 141, 239, 0.14); color: var(--se-accent-strong); }
+.se-badge-warning { background: rgba(245, 158, 11, 0.14); color: var(--se-warning-text); }
+
+/* ---------- Empty state ---------- */
+
+.se-empty { text-align: center; color: var(--se-text-muted); padding: 34px 10px; font-size: 0.85rem; }
+
+/* ---------- Utility ---------- */
+
+.se-mt-lg { margin-top: 24px; }
+.se-mt-sm { margin-top: 6px; }
+.se-mb-0 { margin-bottom: 0 !important; }
+.se-mb-sm { margin-bottom: 16px; }
+.se-mb-lg { margin-bottom: 28px; }
+.se-text-muted { color: var(--se-text-muted); }
+.se-text-center { text-align: center; }
+.se-text-sm { font-size: 0.82rem; }
+.se-text-xs { font-size: 0.75rem; }
+.se-fw-bold { font-weight: 700; }
+.se-inline { display: inline; }
+.se-font-mono { font-family: var(--se-font-mono); }
+.se-font-display { font-family: var(--se-font-display); font-weight: 700; }
+.se-c-accent { color: var(--se-accent-strong); }
+.se-c-accent-2 { color: var(--se-accent-2-strong); }
+.se-c-warning { color: var(--se-warning-text); }
+.se-c-danger { color: var(--se-danger-text); }
+.se-c-bright { color: var(--se-text-bright); }
+
+.se-flex { display: flex; gap: 10px; align-items: center; }
+.se-flex-between { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.se-flex-col-center { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+/* Cabecera de marca centrada (login/register) */
+.se-auth-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 22px; animation: se-fade-in-up 0.4s var(--se-ease) both; }
+.se-auth-header .se-brand { font-size: 1.6rem; }
+
+/* Título de tarjeta sin la barra lateral, para diálogos centrados */
+.se-card-title-center { border-left: none; padding-left: 0; text-align: center; justify-content: center; }
+
+.se-icon-lg { font-size: 2.5rem; }
+
+@media (max-width: 480px) {
+    .se-navbar { flex-direction: column; align-items: flex-start; }
+    .se-brand { font-size: 1.1rem; }
+    /* En columna, align-items:flex-start deja .se-nav-actions (con el
+       menú de cuenta adentro) pegado a la izquierda -- el dropdown,
+       anclado con right:0 a ESE bloque, termina anclado cerca del borde
+       izquierdo de la pantalla y se sale por ahí (se nota instalada como
+       PWA). align-self lo vuelve a poner contra el borde derecho sin
+       afectar el alineado del resto. */
+    .se-nav-actions { align-self: flex-end; }
+}

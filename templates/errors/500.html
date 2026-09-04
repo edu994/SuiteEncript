@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Error del servidor - SuiteEncript{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<div class="se-page-narrow">
+    <div class="se-card se-text-center">
+        <i class="bi bi-exclamation-triangle se-icon-lg se-c-danger"></i>
+        <h4 class="se-font-display se-mt-lg se-mb-0">500 — Error interno</h4>
+        <p class="se-text-muted se-mb-lg">Algo falló de nuestro lado. Ya quedó registrado.</p>
+        <a href="{{ url_for('dashboard') }}" class="se-btn se-btn-outline se-btn-sm">Volver al inicio</a>
+    </div>
+</div>
+{% endblock %}

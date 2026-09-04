@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Descarga Segura - SuiteEncript{% endblock %}
+{% block navbar %}{% endblock %}
+{% block body %}
+<main id="main-content" class="se-page-narrow">
+    <div class="se-card">
+        <h2 class="se-c-accent se-font-display se-mb-0"><i class="bi bi-shield-lock"></i> Descarga Segura</h2>
+        <p class="se-text-muted se-text-sm se-mb-sm">Un usuario ha compartido un archivo cifrado contigo a través de SuiteEncript.</p>
+
+        {% include "_flashes.html" %}
+
+        <div class="se-form-group">
+            <label>Archivo</label>
+            <div class="se-c-bright se-fw-bold">{{ file.original_filename }}</div>
+        </div>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if file.share_password_hash %}
+                <div class="se-form-group">
+                    <label for="password">Este archivo requiere una contraseña</label>
+                    <div class="se-password-group">
+                        <input type="password" id="password" name="password" class="se-input" placeholder="Introduce la clave de enlace" required>
+                        <button type="button" class="se-peek-password" data-se-peek-password="password" aria-label="Mantén pulsado para ver la contraseña">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+            <button type="submit" class="se-btn se-btn-primary se-btn-block"><i class="bi bi-download"></i> Descargar archivo</button>
+        </form>
+
+        {% if file.is_one_time_download %}
+            <p class="se-c-warning se-text-xs se-mt-lg se-mb-0">
+                <i class="bi bi-exclamation-triangle"></i> Este enlace se autodestruirá tras esta descarga.
+            </p>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
