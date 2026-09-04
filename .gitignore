@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+database.db
+.env
+instance/
+vault_master.key
+uploads/
+app/uploads/
+INFO_CLAVES_PROD.txt
+.pytest_cache/
+.coverage
+htmlcov/
+flask_local.log
+design-previews/
+.claude/

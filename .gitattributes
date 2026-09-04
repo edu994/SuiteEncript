@@ -1,0 +1,5 @@
+# entrypoint.sh corre dentro de un contenedor Linux — si Windows lo
+# convirtiera a saltos de línea CRLF al hacer checkout (con core.autocrlf,
+# que este equipo tiene activado), el script fallaría al arrancar con
+# "bad interpreter: /bin/sh^M: no such file or directory".
+*.sh text eol=lf
