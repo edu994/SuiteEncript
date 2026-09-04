@@ -14,3 +14,4 @@ htmlcov/
 flask_local.log
 design-previews/
 .claude/
+CLAUDE.md
