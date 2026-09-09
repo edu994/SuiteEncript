@@ -28,4 +28,16 @@ CONTENT_SECURITY_POLICY = {
     # agregarlo, no es un comodín). BleepingComputer no trae imagen en su
     # RSS, así que no necesita entrada acá -- ver app/utils/news_feed.py.
     "img-src": "'self' data: https://blogger.googleusercontent.com https://krebsonsecurity.com",
+    # Defensa en profundidad, no tapan un hueco real conocido -- ninguna
+    # plantilla usa <object>/<embed>/<base>/formularios que apunten fuera
+    # del propio origen, así que estas directivas no deberían cambiar nada
+    # visible; solo cierran la puerta a que una inyección futura pueda
+    # abusar de esos vectores.
+    "object-src": "'none'",
+    "base-uri": "'self'",
+    "form-action": "'self'",
+    # Equivalente moderno de X-Frame-Options: SAMEORIGIN (que Talisman ya
+    # envía por su cuenta) -- se agrega igual porque frame-ancestors es lo
+    # que los navegadores actuales miran primero.
+    "frame-ancestors": "'self'",
 }

@@ -88,6 +88,13 @@ def create_app(config_overrides=None):
         # con app.test_client().
         session_cookie_secure=app.config["FORCE_HTTPS"],
         content_security_policy=CONTENT_SECURITY_POLICY,
+        # Agrega la directiva "preload" a la cabecera Strict-Transport-Security.
+        # Por sí sola no hace nada todavía -- un navegador solo empieza a
+        # forzar HTTPS de entrada (incluso en la primerísima visita, antes
+        # de recibir esta cabecera una vez) si el dominio está además
+        # registrado en la lista precargada de hstspreload.org, que es un
+        # paso manual y aparte, no algo que dependa de este código.
+        strict_transport_security_preload=True,
     )
 
     # Registrar Blueprints
