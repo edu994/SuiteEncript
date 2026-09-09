@@ -37,15 +37,32 @@ sin pasar por `/forgot-password`. Corregido corriendo
 `check_password_hash()` contra un hash señuelo fijo cuando la cuenta no
 existe, para que las dos ramas hagan el mismo trabajo y tarden lo mismo.
 
-**Rate limiting intermitente en `/login`, encontrado al verificar el
-hallazgo anterior en producción.** El decorador `@limiter.limit("5 per
-minute")` ya estaba en el código, pero probando en vivo (7 intentos
-fallidos seguidos) el límite se disparó una vez y después dejó pasar
-igual — el backend en memoria de Flask-Limiter no comparte contador entre
-procesos, y algo en producción está corriendo más de uno. Queda pendiente
-mover `RATELIMIT_STORAGE_URI` a un Redis compartido (Upstash free tier,
-ya documentado como el paso siguiente en `DEPLOY.md`) para que el límite
-cuente igual sin importar cuántos procesos atiendan la request.
+**Rate limiting roto en `/login`, causa real distinta de lo que parecía
+al principio.** El decorador `@limiter.limit("5 per minute")` ya estaba
+en el código, pero probando en vivo (varias tandas de intentos fallidos
+seguidos) el límite se disparaba una vez y después dejaba pasar todo de
+nuevo, sin ningún patrón. La primera hipótesis fue el backend en memoria
+de Flask-Limiter sin compartir contador entre procesos — se sumó Redis
+(Upstash) como storage compartido para descartarla, pero el problema
+siguió exactamente igual: cero mejora, y la base de Redis no tenía ni
+una sola clave escrita después de varios intentos, la prueba de que el
+problema era anterior a Redis.
+
+Revisando los logs de producción durante una tanda de prueba apareció la
+causa real: `remote_addr` cambiaba en cada request (`10.196.46.1`,
+`10.198.61.202`, `10.198.112.137`...) para lo que debería ser el mismo
+cliente. Flask-Limiter usa la IP como identidad por defecto -- con una
+IP distinta en cada request, nunca llegaba a acumular los 5 intentos
+necesarios para bloquear. La causa de fondo: `ProxyFix` estaba
+configurado con `x_for=1` (confiar en un solo salto de proxy delante del
+contenedor), pero Render tiene al menos dos -- con un solo salto
+confiado, `remote_addr` terminaba siendo la IP interna del segundo salto
+(infraestructura de Render, no el cliente real), y esa IP interna varía
+según qué nodo atienda cada request. Corregido subiendo a `x_for=2`,
+`x_proto=2` en `main.py`. El Redis de Upstash se deja conectado de
+todas formas -- soluciona el problema real (que sí existe) de que el
+backend en memoria no comparte contador si Render llega a correr más de
+un proceso en el futuro, aunque no era la causa de este bug puntual.
 
 ## Agosto 2026
 
