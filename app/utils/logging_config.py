@@ -1,6 +1,6 @@
-"""Logging estructurado (JSON, una línea por evento) — Fase 9 del ROADMAP.
+"""Logging estructurado (JSON, una línea por evento).
 
-La pregunta que responde esta fase es "si algo falla en producción, ¿cómo
+La pregunta que responde este módulo es "si algo falla en producción, ¿cómo
 me entero, y cómo lo investigo sin acceso directo al servidor?". Render (y
 cualquier plataforma similar) captura todo lo que el proceso escribe a
 stdout/stderr como logs consultables desde su dashboard — logs en JSON en
@@ -9,8 +9,7 @@ legibles.
 
 Esto es logging operacional (nivel infraestructura, todo request con o sin
 sesión), distinto de `app/utils/audit.py` (traza de negocio por usuario,
-para auditar acciones concretas de una cuenta — sigue existiendo igual,
-ver Fase 4). No se reemplazan entre sí.
+para auditar acciones concretas de una cuenta). No se reemplazan entre sí.
 
 No agrega ninguna dependencia nueva para el logging en sí — solo el módulo
 `logging` de la librería estándar, con un formatter propio. Sentry (más
@@ -32,7 +31,7 @@ class JsonFormatter(logging.Formatter):
     `_register_request_logging`) se incluyen solo si están presentes, para
     no ensuciar logs que no los usan (p. ej. los de librerías de terceros)."""
 
-    EXTRA_FIELDS = ("method", "path", "status_code", "duration_ms", "remote_addr")
+    EXTRA_FIELDS = ("method", "path", "status_code", "duration_ms", "remote_addr", "x_forwarded_for")
 
     def format(self, record: logging.LogRecord) -> str:
         payload = {
@@ -100,6 +99,11 @@ def _register_request_logging(app):
                 "status_code": response.status_code,
                 "duration_ms": duration_ms,
                 "remote_addr": request.remote_addr,
+                # Cadena cruda tal como llega, sin procesar por ProxyFix --
+                # sirve para calibrar cuántos saltos de proxy hay delante
+                # del contenedor (ver x_for/x_proto en main.py) sin tener
+                # que adivinar a fuerza de prueba y error en producción.
+                "x_forwarded_for": request.headers.get("X-Forwarded-For"),
             },
         )
         return response
