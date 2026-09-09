@@ -55,14 +55,25 @@ cliente. Flask-Limiter usa la IP como identidad por defecto -- con una
 IP distinta en cada request, nunca llegaba a acumular los 5 intentos
 necesarios para bloquear. La causa de fondo: `ProxyFix` estaba
 configurado con `x_for=1` (confiar en un solo salto de proxy delante del
-contenedor), pero Render tiene al menos dos -- con un solo salto
-confiado, `remote_addr` terminaba siendo la IP interna del segundo salto
-(infraestructura de Render, no el cliente real), y esa IP interna varía
-según qué nodo atienda cada request. Corregido subiendo a `x_for=2`,
-`x_proto=2` en `main.py`. El Redis de Upstash se deja conectado de
-todas formas -- soluciona el problema real (que sí existe) de que el
-backend en memoria no comparte contador si Render llega a correr más de
-un proceso en el futuro, aunque no era la causa de este bug puntual.
+contenedor), pero Render tiene más de uno delante -- con un solo salto
+confiado, `remote_addr` terminaba siendo la IP interna del segundo
+salto (infraestructura de Render, no el cliente real), y esa IP interna
+varía según qué nodo atienda cada request.
+
+Corregir esto a fuerza de probar un número de saltos, redeployar y
+volver a medir era lento e impreciso (`x_for=2` mejoró el síntoma pero
+seguía sin ser la IP real -- pasó a mostrar el borde de Cloudflare, que
+también rota entre requests por el enrutamiento anycast). Se agregó
+`x_forwarded_for` (el header crudo, sin procesar) al logging
+estructurado para ver la cadena completa de una sola vez en vez de
+seguir adivinando: resultó ser `cliente_real, borde_de_cloudflare,
+proxy_interno_de_render` -- 3 valores, no 2. `ProxyFix(x_for=3)` es el
+número correcto, confirmado contra el header real, no adivinado.
+
+El Redis de Upstash se deja conectado de todas formas -- soluciona un
+problema real y distinto (que el backend en memoria no comparte
+contador si Render llega a correr más de un proceso en el futuro),
+aunque no era la causa de este bug puntual.
 
 ## Agosto 2026
 

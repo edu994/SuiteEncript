@@ -53,16 +53,18 @@ def create_app(config_overrides=None):
     # infinito: el proxy vuelve a mandarla en HTTP y Talisman vuelve a
     # redirigir.
     #
-    # x_for=2 (no 1): Render tiene al menos dos saltos de proxy delante del
-    # contenedor -- con x_for=1, request.remote_addr terminaba siendo la IP
-    # interna del segundo salto (rango 10.x, infraestructura de Render), no
-    # la IP real del cliente, y encima cambiaba de un request al siguiente
-    # según qué nodo interno atendiera. Eso rompía el rate-limiting de
-    # /login por completo: Flask-Limiter usa remote_addr como identidad, así
-    # que una IP distinta en cada request nunca acumulaba los 5 intentos
-    # necesarios para bloquear. Confirmado mirando remote_addr en los logs
-    # de producción durante una prueba de fuerza bruta real.
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=2, x_for=2)
+    # x_for=3: la cadena real de X-Forwarded-For delante del contenedor
+    # tiene 3 valores -- "cliente_real, borde_de_cloudflare,
+    # proxy_interno_de_render" -- confirmado logueando el header crudo en
+    # producción (ver x_forwarded_for en app/utils/logging_config.py), no
+    # adivinado. Con x_for=1 se tomaba el proxy interno de Render (rango
+    # 10.x); con x_for=2, el borde de Cloudflare (que además cambia de
+    # nodo entre requests por el enrutamiento anycast) -- ninguno de los
+    # dos es la IP real del cliente. Esto rompía el rate-limiting de
+    # /login por completo: Flask-Limiter usa remote_addr como identidad,
+    # así que una IP distinta en cada request nunca acumulaba los 5
+    # intentos necesarios para bloquear.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=2, x_for=3)
 
     db.init_app(app)
     # A partir de ahora, los cambios de esquema (tablas/columnas nuevas) se
