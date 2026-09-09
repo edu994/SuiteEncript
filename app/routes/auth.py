@@ -1,6 +1,7 @@
 import re
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 from zxcvbn import zxcvbn
 
 from app.extensions import limiter
@@ -24,6 +25,15 @@ auth_bp = Blueprint('auth', __name__)
 MIN_PASSWORD_LENGTH = 10
 MIN_ZXCVBN_SCORE = 3  # 0 (muy débil) a 4 (muy fuerte)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+# Hash fijo (no corresponde a ninguna cuenta real) usado solo para igualar
+# el tiempo de respuesta de /login cuando el usuario no existe -- ver el
+# comentario en login() más abajo.
+_DECOY_PASSWORD_HASH = (
+    "scrypt:32768:8:1$5EQP2F4l92kLpSAH$d8cd515c04bd14261af2e0614023cc60"
+    "cf0dbb59cb1699b83f924ea64e84201df2fd78d27682bc03d54c607ab294cf65f3"
+    "671d935cd6738a9980d98f29d2c6c7"
+)
 
 
 def require_current_password(user, submitted_password, failed_action, error_message):
@@ -141,7 +151,21 @@ def login():
         else:
             user = User.query.filter_by(username=identifier).first()
 
-        if user and user.check_password(password):
+        # Si la cuenta no existe, igual se corre un check_password_hash()
+        # contra un hash señuelo fijo -- sin esto, la rama "cuenta
+        # inexistente" responde mucho más rápido que la rama "cuenta real,
+        # contraseña incorrecta" (no hay hash costoso que calcular), y esa
+        # diferencia de tiempo (cientos de ms) permite confirmar qué
+        # usuarios/emails existen sin necesidad de /forgot-password ni de
+        # ver ningún mensaje distinto -- el resultado se descarta, es puro
+        # trabajo para que las dos ramas tarden lo mismo.
+        if user:
+            password_ok = user.check_password(password)
+        else:
+            check_password_hash(_DECOY_PASSWORD_HASH, password)
+            password_ok = False
+
+        if user and password_ok:
             if user.totp_enabled:
                 # No se abre la sesión todavía: falta el segundo factor. Se
                 # guarda el id en una clave de sesión distinta a "user_id"

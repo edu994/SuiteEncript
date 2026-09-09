@@ -4,6 +4,49 @@ Historial técnico del proyecto: qué se construyó, qué se rompió y cómo se
 arregló. Agrupado por mes, no por commit — la idea es que se pueda leer de
 corrido y entender el progreso real, incidentes incluidos.
 
+## Septiembre 2026
+
+### Auditoría de seguridad en producción: dos hallazgos reales corregidos
+
+Revisión de caja negra contra el sitio desplegado (reconocimiento pasivo:
+cabeceras, CSP, control de acceso, manejo de errores, más una cuenta de
+prueba para las rutas autenticadas). La mayoría de lo revisado ya estaba
+bien — CSRF, cookies HttpOnly, CSP sin `unsafe-inline`, IDOR, XSS
+almacenado — pero aparecieron dos problemas reales:
+
+**La landing prometía cifrado en el navegador que no existe.** El texto
+decía "cada archivo se cifra en el navegador... antes de que un solo
+byte salga hacia el servidor" — pero la subida es un POST normal sin
+ningún JavaScript de cifrado de por medio; el servidor recibe el archivo
+en claro y lo cifra ahí mismo antes de guardarlo. Es cifrado en reposo
+real (AES-256-GCM, clave maestra fuera de la base de datos), pero no es
+el modelo "zero-knowledge" que el copy insinuaba. Corregido el texto para
+describir lo que realmente pasa, sin prometer algo que implementar de
+verdad implicaría cifrar en el cliente con `crypto.subtle`, derivar la
+clave ahí, y migrar todo lo ya guardado — un cambio de arquitectura, no
+de copy.
+
+**Fuga de tiempo en `/login` que permite confirmar qué cuentas
+existen.** Con usuario inexistente, `check_password_hash()` nunca se
+llega a ejecutar (no hay hash contra el cual comparar) — la respuesta
+vuelve mucho más rápido que con una cuenta real y contraseña incorrecta.
+El mensaje de error es idéntico en los dos casos, pero el tiempo de
+respuesta no: la diferencia (verificada, cientos de milisegundos) alcanza
+para confirmar por fuerza bruta qué usuarios/emails están registrados,
+sin pasar por `/forgot-password`. Corregido corriendo
+`check_password_hash()` contra un hash señuelo fijo cuando la cuenta no
+existe, para que las dos ramas hagan el mismo trabajo y tarden lo mismo.
+
+**Rate limiting intermitente en `/login`, encontrado al verificar el
+hallazgo anterior en producción.** El decorador `@limiter.limit("5 per
+minute")` ya estaba en el código, pero probando en vivo (7 intentos
+fallidos seguidos) el límite se disparó una vez y después dejó pasar
+igual — el backend en memoria de Flask-Limiter no comparte contador entre
+procesos, y algo en producción está corriendo más de uno. Queda pendiente
+mover `RATELIMIT_STORAGE_URI` a un Redis compartido (Upstash free tier,
+ya documentado como el paso siguiente en `DEPLOY.md`) para que el límite
+cuente igual sin importar cuántos procesos atiendan la request.
+
 ## Agosto 2026
 
 ### Base: de prototipo a aplicación con Postgres

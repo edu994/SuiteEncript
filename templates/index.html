@@ -31,7 +31,7 @@
     <div class="se-hero-canvas-overlay"></div>
     <div class="se-hero-cinematic-inner">
         <h1 class="se-hero-title">Tus contraseñas y archivos, cifrados de verdad.</h1>
-        <p class="se-hero-subtitle">Gestor de credenciales y bóveda de archivos con cifrado AES-256-GCM, autenticación en dos pasos y control de acceso — sin depender de un tercero para confiar en tu propia seguridad.</p>
+        <p class="se-hero-subtitle">Gestor de credenciales y bóveda de archivos con cifrado AES-256-GCM real (no solo un login detrás del cual todo queda en claro), autenticación en dos pasos y control de acceso verificado en cada consulta.</p>
         <a href="{{ url_for('auth.register') }}" class="se-btn se-btn-primary">Crear cuenta gratis <i class="bi bi-arrow-right"></i></a>
     </div>
     <div class="se-scroll-cue"><span>Desplázate</span><span class="se-scroll-line"></span></div>
@@ -58,7 +58,7 @@
     <div class="se-feature-row">
         <div class="se-feature-text">
             <h2 class="se-reveal">Archivos cifrados antes de tocar el disco</h2>
-            <p class="se-feature-copy se-reveal">Cada archivo se cifra en el navegador con AES-256-GCM antes de que un solo byte salga hacia el servidor.</p>
+            <p class="se-feature-copy se-reveal">Cada archivo se cifra con AES-256-GCM antes de guardarse, con una clave maestra que vive aparte de la base de datos — nunca se escribe ni un byte sin cifrar a disco.</p>
         </div>
         <div class="se-media-frame se-reveal">
             <span class="se-frame-tag">AES-256-GCM</span>
